@@ -1,6 +1,6 @@
-![COPS logo](cops-logo.svg)
-
 # COPS
+
+![COPS logo](cops-logo.svg)
 
 ## Naming Convention
 
