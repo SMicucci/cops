@@ -7,7 +7,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef COPS_STRING_BASE_CAP
 #define COPS_STRING_BASE_CAP 8
+#endif
 
 static size_t __strnlen(const char *string, size_t maxlen)
 {
@@ -18,9 +20,8 @@ static size_t __strnlen(const char *string, size_t maxlen)
 }
 
 static void _init(void *self_);
-static void _clean(cops_interface_t *self_);
-static int _compare(const cops_interface_t *self,
-                    const cops_interface_t *other);
+static void _clean(cops_interface_t *self);
+static int _compare(const cops_interface_t *self, const cops_interface_t *oth);
 static unsigned long _hash(const cops_interface_t *self);
 static void *_clone(const cops_interface_t *self);
 static void string_cap(cops_string_t *self, size_t min_len);
@@ -82,11 +83,6 @@ void string_trim(cops_string_t *self)
         }
         self->len = end - start + 1;
 }
-/*
- "  test  ":8
-    ^  ^
-    2  5
-*/
 
 cops_string_t *string_substring(cops_string_t *self, size_t start, size_t end)
 {
@@ -122,8 +118,6 @@ void string_join(cops_string_t *self, const cops_string_t *other)
         self->len = new_len;
         (void)app_str;
 }
-// 0x9310
-// 0xa40c
 
 void string_clean(cops_string_t *self)
 {
@@ -169,9 +163,9 @@ static void _clean(cops_interface_t *self)
         return;
 }
 
-static int _compare(const cops_interface_t *self, const cops_interface_t *other)
+static int _compare(const cops_interface_t *self, const cops_interface_t *oth)
 {
-        return string_compare((cops_string_t *)self, (cops_string_t *)other);
+        return string_compare((cops_string_t *)self, (cops_string_t *)oth);
 }
 
 static unsigned long _hash(const cops_interface_t *self)
