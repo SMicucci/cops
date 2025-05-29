@@ -12,12 +12,12 @@ typedef unsigned long (*cops_hash_FnPtr)(const cops_interface_t *);
 typedef void *(*cops_clone_FnPtr)(const cops_interface_t *);
 
 struct cops_interface {
+        size_t size;
         cops_init_FnPtr init;
         cops_clean_FnPtr clean;
         cops_compare_FnPtr compare;
         cops_hash_FnPtr hash;
         cops_clone_FnPtr clone;
-        size_t size;
 };
 
 #endif /* end of include guard: COPS_CORE_INTERFACE_H */

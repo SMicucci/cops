@@ -25,8 +25,9 @@ static unsigned long _hash(const cops_interface_t *self);
 static void *_clone(const cops_interface_t *self);
 static void string_cap(cops_string_t *self, size_t min_len);
 
-static cops_interface_t __string = {_init, _clean, _compare,
-                                    _hash, _clone, sizeof(cops_string_t)};
+static const cops_interface_t __string = {
+    sizeof(__string), _init, _clean, _compare, _hash, _clone,
+};
 
 const cops_interface_t *const CopsString = &__string;
 
