@@ -3,6 +3,16 @@
 
 #include <cops/core/interface.h>
 
+/* number interface for collection */
+
+extern const cops_interface_t *const CopsByte;
+extern const cops_interface_t *const CopsShort;
+extern const cops_interface_t *const CopsInt;
+extern const cops_interface_t *const CopsEnum;
+extern const cops_interface_t *const CopsLong;
+extern const cops_interface_t *const CopsFloat;
+extern const cops_interface_t *const CopsDouble;
+
 typedef enum cops_number_e cops_e_number_t;
 typedef union cops_number_u cops_u_number_t;
 typedef struct cops_number cops_number_t;
@@ -32,12 +42,18 @@ union cops_number_u {
 
 #undef COPS_NUMBER_LIST
 
-struct number {
+struct cops_number {
         cops_interface_t super;
         cops_u_number_t value;
         cops_e_number_t type;
 };
 
 void number_init(cops_number_t *self, cops_e_number_t type, void *value);
+
+void number_clean(cops_number_t *self);
+
+int number_compare(const cops_number_t *self, const cops_number_t *other);
+
+unsigned long number_hash(const cops_number_t *self);
 
 #endif /* end of include guard: COPS_CORE_NUMBER_H */
