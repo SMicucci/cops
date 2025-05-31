@@ -86,7 +86,11 @@ void number_init(cops_number_t *self, cops_e_number_t type, void *value)
         }
 }
 
-void number_clean(cops_number_t *self) { return; }
+void number_clean(cops_number_t *self)
+{
+        (void)self;
+        return;
+}
 
 int number_compare(const cops_number_t *self, const cops_number_t *other)
 {
