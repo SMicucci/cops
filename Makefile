@@ -1,40 +1,29 @@
-PROJ = cops
-TARGETs_d = src
-DIRS = $(patsubst %/., %,$(wildcard $(TARGETs_d)/*/.))
+CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c99 -O2 -g
 
-INCL_d = /usr/local/include/
-LIB_d = /usr/local/lib/
+SRC_d = test
+OBJ_d = obj
+BIN_d = bin
 
-.PHONY: build debug init clean
+SRCs = $(wildcard $(SRC_d)/*.c)
+OBJs = $(patsubst $(SRC_d)/%.c,$(OBJ_d)/%.o,$(SRCs))
+BIN = $(BIN_d)/test
 
-build: init
-	@for dir in $(DIRS); do \
-		echo "enter $$dir"; \
-		make -s -C $$dir $@; \
-		echo "exit $$dir"; \
-	done;
+.PHONY: all clean
 
-debug: init
-	@for dir in $(DIRS); do \
-		echo "enter $$dir"; \
-		make -s -C $$dir $@; \
-		echo "exit $$dir"; \
-	done;
+all: $(BIN)
+	@echo -e "[\e[36mcops\e[0m]: \e[32mcops test created!\e[0m"
 
-init:
-	@echo "link headers"
-	@for dir in $(DIRS); do \
-		target=$$(echo "$$dir" | sed 's;[^/]*/;;'); \
-		sudo mkdir -p /usr/local/include/cops/$$target; \
-		echo "enter $$dir"; \
-		make -s -C $$dir init; \
-		echo "exit $$dir"; \
-		done;
+$(OBJ_d)/%.o: $(SRC_d)/%.c | $(OBJ_d)
+	@echo -e "[\e[36mcops\e[0m]: \e[34mbuilding "$@"\e[0m..."
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_d) $(BIN_d):
+	@mkdir -p $@
+
+$(BIN): $(OBJs) | $(BIN_d)
+	@echo -e "[\e[36mcops\e[0m]: \e[33mcreating "$@"\e[0m..."
+	@$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	@sudo rm -rf $(INCL_d)/$(PROJ)
-	@for dir in $(DIRS); do \
-		echo "enter $$dir"; \
-		make -s -C $$dir $@; \
-		echo "exit $$dir"; \
-	done;
+	@echo -e "[\e[36mcops\e[0m]: \e[31mcleaning reference\e[0m..."
+	@rm -rf $(BIN_d) $(OBJ_d)
