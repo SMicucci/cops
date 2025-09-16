@@ -1,14 +1,26 @@
-#ifndef COPS_SET_H
-#define COPS_SET_H
+#ifndef COPS_MAP_H
+#define COPS_MAP_H
 
-#include "cops_core.h"
+#include "core.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * hashset with robin hood probing
+ * standard string hashing function
+ */
+static inline size_t djb2(char *s)
+{
+        size_t hash = 5381;
+        int c;
+        while ((c = *s++))
+                hash = ((hash << 5) + hash) + c;
+        return hash;
+}
+
+/**
+ * hashmap with robin hood probing
  *
  * pow2 size is the simplest and easy to handle size growth
  * chaining is too complex to handle and too expensive
@@ -16,7 +28,7 @@ extern "C" {
  * quadratic probing would lead to untouched entries in pow2 size
  * triangular robinhood probing fit perfectly
  *
- * add will override previous value
+ * set will override previous value
  *
  *  0 success
  * -1 invalid parameters
@@ -28,33 +40,38 @@ extern "C" {
  *   0x40 -> tombstone
  *   0x3f -> jumps
  */
-#define __init_cops_set(name, T)                                                                   \
+
+#define __init_cops_map(name, K, V)                                                                \
         typedef struct name##_node {                                                               \
                 uint8_t flag;                                                                      \
-                T key;                                                                             \
+                K key;                                                                             \
+                V val;                                                                             \
         } name##_node;                                                                             \
+                                                                                                   \
         typedef struct name {                                                                      \
                 uint32_t rc;                                                                       \
                 uint32_t cap;                                                                      \
                 uint32_t nelem;                                                                    \
                 name##_node *data;                                                                 \
-                size_t (*hash)(T);                                                                 \
-                int (*cmp)(T, T);                                                                  \
+                size_t (*hash)(K);                                                                 \
+                int (*cmp)(K, K);                                                                  \
         } name;                                                                                    \
                                                                                                    \
-        static inline name *name##_new(size_t (*hash)(T), int (*cmp)(T, T))                        \
+        static inline name *name##_new(size_t (*hash)(K), int (*cmp)(K, K))                        \
         {                                                                                          \
+                if (!hash || !cmp)                                                                 \
+                        return NULL;                                                               \
                 if (16 > SIZE_MAX / sizeof(name##_node))                                           \
                         return NULL;                                                               \
-                name *self = (name *)cops_default_allcator.alloc(sizeof(*self));                   \
+                name *self = (name *)cops_default_allocator.alloc(sizeof(*self));                   \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->cap = 16;                                                                    \
                 self->rc = 1;                                                                      \
                 self->data =                                                                       \
-                    (name##_node *)cops_default_allcator.alloc(sizeof(name##_node) * self->cap);   \
+                    (name##_node *)cops_default_allocator.alloc(sizeof(name##_node) * self->cap);   \
                 if (!self->data) {                                                                 \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self);                                          \
                         return NULL;                                                               \
                 }                                                                                  \
                 memset(self->data, 0, sizeof(*self->data) * self->cap);                            \
@@ -76,22 +93,22 @@ extern "C" {
         static inline name *name##_free(name *self)                                                \
         {                                                                                          \
                 if (self && self->rc > 0 && !(--self->rc)) {                                       \
-                        cops_default_allcator.free(self->data);                                    \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self->data);                                    \
+                        cops_default_allocator.free(self);                                          \
                 }                                                                                  \
                 return NULL;                                                                       \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_add(name *self, T key)                                            \
+        static inline int name##_add(name *self, K key, V val)                                     \
         {                                                                                          \
-                if (!self || !self->data || !self->hash)                                           \
+                if (!self || !self->data || !self->hash || !self->cmp)                             \
                         return -1;                                                                 \
                 if (((100 * self->nelem) / self->cap) > 90) {                                      \
                         int res = 0;                                                               \
                         size_t cap = self->cap * 2;                                                \
                         name##_node *old = self->data;                                             \
                         name##_node *data =                                                        \
-                            (name##_node *)cops_default_allcator.alloc(sizeof(*data) * cap);       \
+                            (name##_node *)cops_default_allocator.alloc(sizeof(*data) * cap);       \
                         if (!data)                                                                 \
                                 return -2;                                                         \
                         memset(data, 0, sizeof(*data) * cap);                                      \
@@ -106,10 +123,10 @@ extern "C" {
                                         return res;                                                \
                                 name##_node *n = old + i;                                          \
                                 if (n->flag != 0x80) {                                             \
-                                        res = name##_add(self, n->key);                            \
+                                        res = name##_set(self, n->key, n->val);                    \
                                 }                                                                  \
                         }                                                                          \
-                        cops_default_allcator.free(old);                                           \
+                        cops_default_allocator.free(old);                                           \
                 }                                                                                  \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
@@ -117,7 +134,7 @@ extern "C" {
                         pos = (entry + (i * i + i) / 2) % self->cap;                               \
                         name##_node *n = self->data + pos;                                         \
                         if (n->flag & 0x40 || n->flag & 0x80) {                                    \
-                                *n = (name##_node){i, key};                                        \
+                                *n = (name##_node){i, key, val};                                   \
                                 self->nelem++;                                                     \
                                 return 0;                                                          \
                         }                                                                          \
@@ -126,8 +143,9 @@ extern "C" {
                         }                                                                          \
                         if (n->flag < i) {                                                         \
                                 name##_node next = *n;                                             \
-                                *n = (name##_node){i, key};                                        \
+                                *n = (name##_node){i, key, val};                                   \
                                 i = next.flag;                                                     \
+                                val = next.val;                                                    \
                                 key = next.key;                                                    \
                                 entry = self->hash(key) % self->cap;                               \
                         }                                                                          \
@@ -136,16 +154,16 @@ extern "C" {
                 return -2;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_set(name *self, T key)                                            \
+        static inline int name##_set(name *self, K key, V val)                                     \
         {                                                                                          \
-                if (!self || !self->data || !self->hash)                                           \
+                if (!self || !self->data || !self->hash || !self->cmp)                             \
                         return -1;                                                                 \
                 if (((100 * self->nelem) / self->cap) > 90) {                                      \
                         int res = 0;                                                               \
                         size_t cap = self->cap * 2;                                                \
                         name##_node *old = self->data;                                             \
                         name##_node *data =                                                        \
-                            (name##_node *)cops_default_allcator.alloc(sizeof(*data) * cap);       \
+                            (name##_node *)cops_default_allocator.alloc(sizeof(*data) * cap);       \
                         if (!data)                                                                 \
                                 return -2;                                                         \
                         memset(data, 0, sizeof(*data) * cap);                                      \
@@ -160,10 +178,10 @@ extern "C" {
                                         return res;                                                \
                                 name##_node *n = old + i;                                          \
                                 if (n->flag != 0x80) {                                             \
-                                        res = name##_add(self, n->key);                            \
+                                        res = name##_set(self, n->key, n->val);                    \
                                 }                                                                  \
                         }                                                                          \
-                        cops_default_allcator.free(old);                                           \
+                        cops_default_allocator.free(old);                                           \
                 }                                                                                  \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
@@ -174,13 +192,14 @@ extern "C" {
                                 return -3;                                                         \
                         }                                                                          \
                         if (!self->cmp(key, n->key)) {                                             \
-                                *n = (name##_node){i, key};                                        \
+                                *n = (name##_node){i, key, val};                                   \
                                 return 0;                                                          \
                         }                                                                          \
                         if (n->flag < i) {                                                         \
                                 name##_node next = *n;                                             \
-                                *n = (name##_node){i, key};                                        \
+                                *n = (name##_node){i, key, val};                                   \
                                 i = next.flag;                                                     \
+                                val = next.val;                                                    \
                                 key = next.key;                                                    \
                                 entry = self->hash(key) % self->cap;                               \
                         }                                                                          \
@@ -189,7 +208,7 @@ extern "C" {
                 return -2;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_has(name *self, T key)                                            \
+        static inline int name##_has(name *self, K key)                                            \
         {                                                                                          \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
                         return -1;                                                                 \
@@ -207,9 +226,9 @@ extern "C" {
                 return 0;                                                                          \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_del(name *self, T *key)                                           \
+        static inline int name##_del(name *self, K key, V *val)                                    \
         {                                                                                          \
-                if (!self || !self->data || !self->hash || !self->cmp || !key)                     \
+                if (!self || !self->data || !self->hash || !self->cmp)                             \
                         return -1;                                                                 \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
@@ -220,7 +239,8 @@ extern "C" {
                                 return -1;                                                         \
                         if (self->cmp(key, n->key) == 0) {                                         \
                                 n->flag = 0x40;                                                    \
-                                *key = n->key;                                                     \
+                                if (val)                                                           \
+                                        *val = n->val;                                             \
                                 return 0;                                                          \
                         }                                                                          \
                         i++;                                                                       \
@@ -228,17 +248,18 @@ extern "C" {
                 return -3;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_get(name *self, T *key)                                           \
+        static inline int name##_get(name *self, K key, V *val)                                    \
         {                                                                                          \
-                if (!self || !self->data || !self->hash || !self->cmp || !key)                     \
+                if (!self || !self->data || !self->hash || !self->cmp)                             \
                         return -1;                                                                 \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
                 while (i < 0x40) {                                                                 \
                         pos = (entry + (i * i + i) / 2) % self->cap;                               \
                         name##_node *n = self->data + pos;                                         \
-                        if (!(n->flag & 0xc0) && !self->cmp(key, n->key)) {                        \
-                                *key = n->key;                                                     \
+                        if (n->flag & 0xc0 || !self->cmp(key, n->key)) {                           \
+                                if (val)                                                           \
+                                        memcpy(val, &(n->val), sizeof(*val));                      \
                                 return 0;                                                          \
                         }                                                                          \
                         i++;                                                                       \
@@ -246,10 +267,10 @@ extern "C" {
                 return -3;                                                                         \
         }
 
-#define init_cops_set(T) __init_cops_set(cops_##T##_set, T)
+#define init_cops_map(K, V) __init_cops_map(cops_##K##_##V##_map, K, V)
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ifndef COPS_SET_H */
+#endif /* ifndef COPS_MAP_H */

@@ -1,4 +1,4 @@
-#include "../src/cops_arr.h"
+#include "../src/arr.h"
 #include "test.h"
 #include <stdio.h>
 #include <string.h>

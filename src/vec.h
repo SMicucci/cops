@@ -1,11 +1,11 @@
 #ifndef COPS_VEC_H
 #define COPS_VEC_H
 
-#include "cops_core.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include "core.h"
 
 #define __init_cops_vec(name, T)                                                                   \
         typedef struct name {                                                                      \
@@ -17,20 +17,20 @@ extern "C" {
                                                                                                    \
         static inline name *name##_new()                                                           \
         {                                                                                          \
-                name *self = cops_default_allcator.alloc(sizeof(name));                            \
+                name *self = cops_default_allocator.alloc(sizeof(name));                           \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->rc = 1;                                                                      \
                 self->nelem = 0;                                                                   \
                 self->log_cap = 3;                                                                 \
                 if ((1 << self->log_cap) >= SIZE_MAX / sizeof(T)) {                                \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \
                 }                                                                                  \
                 self->data =                                                                       \
-                    cops_default_allcator.alloc(sizeof(T) * ((size_t)1 << self->log_cap));         \
+                    cops_default_allocator.alloc(sizeof(T) * ((size_t)1 << self->log_cap));        \
                 if (!self->data) {                                                                 \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \
                 }                                                                                  \
                 return self;                                                                       \
@@ -46,8 +46,8 @@ extern "C" {
         static inline name *name##_free(name *self)                                                \
         {                                                                                          \
                 if (self && self->rc > 0 && !(--self->rc)) {                                       \
-                        cops_default_allcator.free(self->data);                                    \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self->data);                                   \
+                        cops_default_allocator.free(self);                                         \
                 }                                                                                  \
                 return NULL;                                                                       \
         }                                                                                          \
@@ -61,8 +61,8 @@ extern "C" {
                                 return -2;                                                         \
                         }                                                                          \
                         T *old = self->data;                                                       \
-                        T *new =                                                                   \
-                            cops_default_allcator.alloc(sizeof(T) * ((size_t)2 << self->log_cap)); \
+                        T *new = cops_default_allocator.alloc(sizeof(T) *                          \
+                                                              ((size_t)2 << self->log_cap));       \
                         if (!new)                                                                  \
                                 return -1;                                                         \
                         memset(new, 0, sizeof(T) * ((size_t)2 << self->log_cap));                  \
@@ -70,7 +70,7 @@ extern "C" {
                         memset(old, 0, sizeof(T) * ((size_t)1 << self->log_cap));                  \
                         self->log_cap++;                                                           \
                         self->data = new;                                                          \
-                        cops_default_allcator.free(old);                                           \
+                        cops_default_allocator.free(old);                                          \
                 }                                                                                  \
                 T *trg = self->data + self->nelem++;                                               \
                 memcpy(trg, &val, sizeof(T));                                                      \

@@ -1,26 +1,14 @@
-#ifndef COPS_MAP_H
-#define COPS_MAP_H
-
-#include "cops_core.h"
+#ifndef COPS_SET_H
+#define COPS_SET_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * standard string hashing function
- */
-static inline size_t djb2(char *s)
-{
-        size_t hash = 5381;
-        int c;
-        while ((c = *s++))
-                hash = ((hash << 5) + hash) + c;
-        return hash;
-}
+#include "core.h"
 
 /**
- * hashmap with robin hood probing
+ * hashset with robin hood probing
  *
  * pow2 size is the simplest and easy to handle size growth
  * chaining is too complex to handle and too expensive
@@ -28,7 +16,7 @@ static inline size_t djb2(char *s)
  * quadratic probing would lead to untouched entries in pow2 size
  * triangular robinhood probing fit perfectly
  *
- * set will override previous value
+ * add will override previous value
  *
  *  0 success
  * -1 invalid parameters
@@ -40,38 +28,33 @@ static inline size_t djb2(char *s)
  *   0x40 -> tombstone
  *   0x3f -> jumps
  */
-
-#define __init_cops_map(name, K, V)                                                                \
+#define __init_cops_set(name, T)                                                                   \
         typedef struct name##_node {                                                               \
                 uint8_t flag;                                                                      \
-                K key;                                                                             \
-                V val;                                                                             \
+                T key;                                                                             \
         } name##_node;                                                                             \
-                                                                                                   \
         typedef struct name {                                                                      \
                 uint32_t rc;                                                                       \
                 uint32_t cap;                                                                      \
                 uint32_t nelem;                                                                    \
                 name##_node *data;                                                                 \
-                size_t (*hash)(K);                                                                 \
-                int (*cmp)(K, K);                                                                  \
+                size_t (*hash)(T);                                                                 \
+                int (*cmp)(T, T);                                                                  \
         } name;                                                                                    \
                                                                                                    \
-        static inline name *name##_new(size_t (*hash)(K), int (*cmp)(K, K))                        \
+        static inline name *name##_new(size_t (*hash)(T), int (*cmp)(T, T))                        \
         {                                                                                          \
-                if (!hash || !cmp)                                                                 \
-                        return NULL;                                                               \
                 if (16 > SIZE_MAX / sizeof(name##_node))                                           \
                         return NULL;                                                               \
-                name *self = (name *)cops_default_allcator.alloc(sizeof(*self));                   \
+                name *self = (name *)cops_default_allocator.alloc(sizeof(*self));                   \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->cap = 16;                                                                    \
                 self->rc = 1;                                                                      \
                 self->data =                                                                       \
-                    (name##_node *)cops_default_allcator.alloc(sizeof(name##_node) * self->cap);   \
+                    (name##_node *)cops_default_allocator.alloc(sizeof(name##_node) * self->cap);   \
                 if (!self->data) {                                                                 \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self);                                          \
                         return NULL;                                                               \
                 }                                                                                  \
                 memset(self->data, 0, sizeof(*self->data) * self->cap);                            \
@@ -93,22 +76,22 @@ static inline size_t djb2(char *s)
         static inline name *name##_free(name *self)                                                \
         {                                                                                          \
                 if (self && self->rc > 0 && !(--self->rc)) {                                       \
-                        cops_default_allcator.free(self->data);                                    \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self->data);                                    \
+                        cops_default_allocator.free(self);                                          \
                 }                                                                                  \
                 return NULL;                                                                       \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_add(name *self, K key, V val)                                     \
+        static inline int name##_add(name *self, T key)                                            \
         {                                                                                          \
-                if (!self || !self->data || !self->hash || !self->cmp)                             \
+                if (!self || !self->data || !self->hash)                                           \
                         return -1;                                                                 \
                 if (((100 * self->nelem) / self->cap) > 90) {                                      \
                         int res = 0;                                                               \
                         size_t cap = self->cap * 2;                                                \
                         name##_node *old = self->data;                                             \
                         name##_node *data =                                                        \
-                            (name##_node *)cops_default_allcator.alloc(sizeof(*data) * cap);       \
+                            (name##_node *)cops_default_allocator.alloc(sizeof(*data) * cap);       \
                         if (!data)                                                                 \
                                 return -2;                                                         \
                         memset(data, 0, sizeof(*data) * cap);                                      \
@@ -123,10 +106,10 @@ static inline size_t djb2(char *s)
                                         return res;                                                \
                                 name##_node *n = old + i;                                          \
                                 if (n->flag != 0x80) {                                             \
-                                        res = name##_set(self, n->key, n->val);                    \
+                                        res = name##_add(self, n->key);                            \
                                 }                                                                  \
                         }                                                                          \
-                        cops_default_allcator.free(old);                                           \
+                        cops_default_allocator.free(old);                                           \
                 }                                                                                  \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
@@ -134,7 +117,7 @@ static inline size_t djb2(char *s)
                         pos = (entry + (i * i + i) / 2) % self->cap;                               \
                         name##_node *n = self->data + pos;                                         \
                         if (n->flag & 0x40 || n->flag & 0x80) {                                    \
-                                *n = (name##_node){i, key, val};                                   \
+                                *n = (name##_node){i, key};                                        \
                                 self->nelem++;                                                     \
                                 return 0;                                                          \
                         }                                                                          \
@@ -143,9 +126,8 @@ static inline size_t djb2(char *s)
                         }                                                                          \
                         if (n->flag < i) {                                                         \
                                 name##_node next = *n;                                             \
-                                *n = (name##_node){i, key, val};                                   \
+                                *n = (name##_node){i, key};                                        \
                                 i = next.flag;                                                     \
-                                val = next.val;                                                    \
                                 key = next.key;                                                    \
                                 entry = self->hash(key) % self->cap;                               \
                         }                                                                          \
@@ -154,16 +136,16 @@ static inline size_t djb2(char *s)
                 return -2;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_set(name *self, K key, V val)                                     \
+        static inline int name##_set(name *self, T key)                                            \
         {                                                                                          \
-                if (!self || !self->data || !self->hash || !self->cmp)                             \
+                if (!self || !self->data || !self->hash)                                           \
                         return -1;                                                                 \
                 if (((100 * self->nelem) / self->cap) > 90) {                                      \
                         int res = 0;                                                               \
                         size_t cap = self->cap * 2;                                                \
                         name##_node *old = self->data;                                             \
                         name##_node *data =                                                        \
-                            (name##_node *)cops_default_allcator.alloc(sizeof(*data) * cap);       \
+                            (name##_node *)cops_default_allocator.alloc(sizeof(*data) * cap);       \
                         if (!data)                                                                 \
                                 return -2;                                                         \
                         memset(data, 0, sizeof(*data) * cap);                                      \
@@ -178,10 +160,10 @@ static inline size_t djb2(char *s)
                                         return res;                                                \
                                 name##_node *n = old + i;                                          \
                                 if (n->flag != 0x80) {                                             \
-                                        res = name##_set(self, n->key, n->val);                    \
+                                        res = name##_add(self, n->key);                            \
                                 }                                                                  \
                         }                                                                          \
-                        cops_default_allcator.free(old);                                           \
+                        cops_default_allocator.free(old);                                           \
                 }                                                                                  \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
@@ -192,14 +174,13 @@ static inline size_t djb2(char *s)
                                 return -3;                                                         \
                         }                                                                          \
                         if (!self->cmp(key, n->key)) {                                             \
-                                *n = (name##_node){i, key, val};                                   \
+                                *n = (name##_node){i, key};                                        \
                                 return 0;                                                          \
                         }                                                                          \
                         if (n->flag < i) {                                                         \
                                 name##_node next = *n;                                             \
-                                *n = (name##_node){i, key, val};                                   \
+                                *n = (name##_node){i, key};                                        \
                                 i = next.flag;                                                     \
-                                val = next.val;                                                    \
                                 key = next.key;                                                    \
                                 entry = self->hash(key) % self->cap;                               \
                         }                                                                          \
@@ -208,7 +189,7 @@ static inline size_t djb2(char *s)
                 return -2;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_has(name *self, K key)                                            \
+        static inline int name##_has(name *self, T key)                                            \
         {                                                                                          \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
                         return -1;                                                                 \
@@ -226,9 +207,9 @@ static inline size_t djb2(char *s)
                 return 0;                                                                          \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_del(name *self, K key, V *val)                                    \
+        static inline int name##_del(name *self, T *key)                                           \
         {                                                                                          \
-                if (!self || !self->data || !self->hash || !self->cmp)                             \
+                if (!self || !self->data || !self->hash || !self->cmp || !key)                     \
                         return -1;                                                                 \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
@@ -239,8 +220,7 @@ static inline size_t djb2(char *s)
                                 return -1;                                                         \
                         if (self->cmp(key, n->key) == 0) {                                         \
                                 n->flag = 0x40;                                                    \
-                                if (val)                                                           \
-                                        *val = n->val;                                             \
+                                *key = n->key;                                                     \
                                 return 0;                                                          \
                         }                                                                          \
                         i++;                                                                       \
@@ -248,18 +228,17 @@ static inline size_t djb2(char *s)
                 return -3;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_get(name *self, K key, V *val)                                    \
+        static inline int name##_get(name *self, T *key)                                           \
         {                                                                                          \
-                if (!self || !self->data || !self->hash || !self->cmp)                             \
+                if (!self || !self->data || !self->hash || !self->cmp || !key)                     \
                         return -1;                                                                 \
                 size_t pos, entry = self->hash(key) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
                 while (i < 0x40) {                                                                 \
                         pos = (entry + (i * i + i) / 2) % self->cap;                               \
                         name##_node *n = self->data + pos;                                         \
-                        if (n->flag & 0xc0 || !self->cmp(key, n->key)) {                           \
-                                if (val)                                                           \
-                                        memcpy(val, &(n->val), sizeof(*val));                      \
+                        if (!(n->flag & 0xc0) && !self->cmp(key, n->key)) {                        \
+                                *key = n->key;                                                     \
                                 return 0;                                                          \
                         }                                                                          \
                         i++;                                                                       \
@@ -267,10 +246,10 @@ static inline size_t djb2(char *s)
                 return -3;                                                                         \
         }
 
-#define init_cops_map(K, V) __init_cops_map(cops_##K##_##V##_map, K, V)
+#define init_cops_set(T) __init_cops_set(cops_##T##_set, T)
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ifndef COPS_MAP_H */
+#endif /* ifndef COPS_SET_H */

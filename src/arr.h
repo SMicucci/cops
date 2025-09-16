@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#include "cops_core.h"
+#include "core.h"
 
 #define __init_cops_arr(name, T)                                                                   \
         typedef struct name {                                                                      \
@@ -17,7 +17,8 @@ extern "C" {
         {                                                                                          \
                 if (len > (uint32_t)((SIZE_MAX - sizeof(name)) / sizeof(T)))                       \
                         return NULL;                                                               \
-                name *self = (name *)cops_default_allcator.alloc(sizeof(*self) + sizeof(T) * len); \
+                name *self =                                                                       \
+                    (name *)cops_default_allocator.alloc(sizeof(*self) + sizeof(T) * len);         \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->len = len;                                                                   \
@@ -36,7 +37,7 @@ extern "C" {
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 if (self->rc > 0 && !(--self->rc)) {                                               \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self);                                         \
                 }                                                                                  \
                 return NULL;                                                                       \
         }

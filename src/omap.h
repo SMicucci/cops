@@ -1,11 +1,11 @@
-#ifndef COPS_OSET_H
-#define COPS_OSET_H
+#ifndef COPS_OMAP_H
+#define COPS_OMAP_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "cops_core.h"
+#include "core.h"
 
 /**
  * when int is returned:
@@ -15,24 +15,25 @@ extern "C" {
  * -3: logic internal error
  * */
 
-#define __init_cops_oset(name, T)                                                                  \
+#define __init_cops_omap(name, K, V)                                                               \
                                                                                                    \
         typedef struct name##_node {                                                               \
                 struct name##_node *parent, *left, *right;                                         \
                 uint8_t isred;                                                                     \
-                T val;                                                                             \
+                K key;                                                                             \
+                V val;                                                                             \
         } name##_node;                                                                             \
                                                                                                    \
         typedef struct name {                                                                      \
                 uint32_t nelem;                                                                    \
                 uint32_t rc;                                                                       \
                 name##_node *root;                                                                 \
-                int (*cmp)(T, T);                                                                  \
+                int (*cmp)(K, K);                                                                  \
         } name;                                                                                    \
                                                                                                    \
-        static inline name *name##_new(int (*cmp)(T, T))                                           \
+        static inline name *name##_new(int (*cmp)(K, K))                                           \
         {                                                                                          \
-                name *self = cops_default_allcator.alloc(sizeof(*self));                           \
+                name *self = cops_default_allocator.alloc(sizeof(*self));                           \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->cmp = cmp;                                                                   \
@@ -65,13 +66,13 @@ extern "C" {
                                                         p->left = NULL;                            \
                                                 if (p && p->right == n)                            \
                                                         p->right = NULL;                           \
-                                                cops_default_allcator.free(n);                     \
+                                                cops_default_allocator.free(n);                     \
                                                 n = p;                                             \
                                         }                                                          \
                                 }                                                                  \
                         }                                                                          \
                         self->root = NULL;                                                         \
-                        cops_default_allcator.free(self);                                          \
+                        cops_default_allocator.free(self);                                          \
                 }                                                                                  \
                 return NULL;                                                                       \
         }                                                                                          \
@@ -127,16 +128,16 @@ extern "C" {
                 return 0;                                                                          \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_add(name *self, T val)                                            \
+        static inline int name##_add(name *self, K key, V val)                                     \
         {                                                                                          \
                 if (!self)                                                                         \
                         return -1;                                                                 \
                 if (!self->cmp)                                                                    \
                         return -3; /* init node*/                                                  \
-                name##_node *e = (name##_node *)cops_default_allcator.alloc(sizeof(*e));           \
+                name##_node *e = (name##_node *)cops_default_allocator.alloc(sizeof(*e));           \
                 if (!e)                                                                            \
                         return -2;                                                                 \
-                *e = (name##_node){NULL, NULL, NULL, 1, val};                                      \
+                *e = (name##_node){NULL, NULL, NULL, 1, key, val};                                 \
                 /* insert*/                                                                        \
                 if (!self->root) {                                                                 \
                         self->root = e;                                                            \
@@ -148,7 +149,7 @@ extern "C" {
                 while (1) {                                                                        \
                         int diff = self->cmp(key, n->key);                                         \
                         if (!diff) {                                                               \
-                                cops_default_allcator.free(e);                                     \
+                                cops_default_allocator.free(e);                                     \
                                 return -3;                                                         \
                         } else if (diff > 0) {                                                     \
                                 if (!n->right) {                                                   \
@@ -222,7 +223,7 @@ extern "C" {
                 return 0;                                                                          \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_has(name *self, T val)                                            \
+        static inline int name##_has(name *self, K key, V *val)                                    \
         {                                                                                          \
                 if (!self)                                                                         \
                         return -1;                                                                 \
@@ -230,18 +231,21 @@ extern "C" {
                         return -3;                                                                 \
                 name##_node *n = self->root;                                                       \
                 while (n) {                                                                        \
-                        int cmp = self->cmp(val, n->val);                                          \
-                        if (!cmp)                                                                  \
+                        int cmp = self->cmp(key, n->key);                                          \
+                        if (!cmp) {                                                                \
+                                if (val)                                                           \
+                                        *val = n->val;                                             \
                                 return 0;                                                          \
-                        else if (cmp > 0)                                                          \
+                        } else if (cmp > 0) {                                                      \
                                 n = n->right;                                                      \
-                        else                                                                       \
+                        } else {                                                                   \
                                 n = n->left;                                                       \
+                        }                                                                          \
                 }                                                                                  \
                 return -3;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_mod(name *self, T val)                                            \
+        static inline int name##_mod(name *self, K key, V val)                                     \
         {                                                                                          \
                 if (!self)                                                                         \
                         return -1;                                                                 \
@@ -249,7 +253,7 @@ extern "C" {
                         return -3;                                                                 \
                 name##_node *n = self->root;                                                       \
                 while (n) {                                                                        \
-                        int cmp = self->cmp(val, n->val);                                          \
+                        int cmp = self->cmp(key, n->key);                                          \
                         if (!cmp) {                                                                \
                                 n->val = val;                                                      \
                                 return 0;                                                          \
@@ -262,7 +266,7 @@ extern "C" {
                 return -3;                                                                         \
         }                                                                                          \
                                                                                                    \
-        static inline int name##_del(name *self, T *val)                                           \
+        static inline int name##_del(name *self, K key, V *val)                                    \
         {                                                                                          \
                 if (!self)                                                                         \
                         return -1;                                                                 \
@@ -270,7 +274,7 @@ extern "C" {
                         return -3; /* valid tree*/                                                 \
                 name##_node *x = self->root;                                                       \
                 while (x) {                                                                        \
-                        int cmp = self->cmp(*val, x->val);                                         \
+                        int cmp = self->cmp(key, x->key);                                          \
                         if (!cmp)                                                                  \
                                 break;                                                             \
                         else if (cmp > 0)                                                          \
@@ -288,8 +292,11 @@ extern "C" {
                         while (n->left) {                                                          \
                                 n = n->left;                                                       \
                         }                                                                          \
-                        T v = x->val;                                                              \
+                        K k = x->key;                                                              \
+                        V v = x->val;                                                              \
+                        x->key = n->key;                                                           \
                         x->val = n->val;                                                           \
+                        n->key = k;                                                                \
                         n->val = v;                                                                \
                 }                                                                                  \
                 x = NULL;                   /* only one children (n)*/                             \
@@ -307,14 +314,14 @@ extern "C" {
                         } /* parent (n) children is only child*/                                   \
                         oc->parent = p;                                                            \
                         oc->isred = 0;                                                             \
-                        cops_default_allcator.free(n);                                             \
+                        cops_default_allocator.free(n);                                             \
                         self->nelem--;                                                             \
                         return 0;                                                                  \
                 } /* no children*/                                                                 \
                 if (!p) {                                                                          \
                         self->nelem--;                                                             \
                         self->root = NULL;                                                         \
-                        cops_default_allcator.free(n);                                             \
+                        cops_default_allocator.free(n);                                             \
                         return 0;                                                                  \
                 }                                                                                  \
                 name##_node *s = p->left == n ? p->right : p->left;                                \
@@ -324,7 +331,7 @@ extern "C" {
                 else                                                                               \
                         p->right = NULL;                                                           \
                 volatile int n_is_red = n->isred;                                                  \
-                cops_default_allcator.free(n);                                                     \
+                cops_default_allocator.free(n);                                                     \
                 n = NULL;                                                                          \
                 self->nelem--;                                                                     \
                 if (n_is_red)                                                                      \
@@ -383,10 +390,10 @@ extern "C" {
                 return 0;                                                                          \
         }
 
-#define init_cops_oset(T) __init_cops_oset(cops_##K##_##V##_oset, K, V)
+#define init_cops_omap(K, V) __init_cops_omap(cops_##K##_##V##_omap, K, V)
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ifndef COPS_OSET_H */
+#endif /* ifndef COPS_OMAP_H */
