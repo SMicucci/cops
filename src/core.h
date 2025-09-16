@@ -35,7 +35,7 @@ typedef struct cops_allocator {
 } cops_allocator;
 
 // default allocator used in all the macros
-const cops_allocator cops_default_allocator = {cops_alloc, realloc, free};
+static const cops_allocator cops_default_allocator = {cops_alloc, realloc, free};
 
 #ifdef __init_cops_arr
 #error "'__init_cops_arr' is a reserved word for cops library"

@@ -23,7 +23,7 @@ extern "C" {
                 self->rc = 1;                                                                      \
                 self->nelem = 0;                                                                   \
                 self->log_cap = 3;                                                                 \
-                if ((1 << self->log_cap) >= SIZE_MAX / sizeof(T)) {                                \
+                if ((unsigned long)(1 << self->log_cap) >= SIZE_MAX / sizeof(T)) {                 \
                         cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \
                 }                                                                                  \
@@ -56,8 +56,8 @@ extern "C" {
         {                                                                                          \
                 if (!self || !self->data)                                                          \
                         return -1;                                                                 \
-                if (self->nelem == 1 << self->log_cap) {                                           \
-                        if ((2 << self->log_cap) > SIZE_MAX / sizeof(T)) {                         \
+                if (self->nelem == (uint32_t)(1 << self->log_cap)) {                               \
+                        if ((unsigned long)(2 << self->log_cap) > (SIZE_MAX / sizeof(T))) {        \
                                 return -2;                                                         \
                         }                                                                          \
                         T *old = self->data;                                                       \
