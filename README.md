@@ -47,6 +47,23 @@ init_cops_vec(T)
 Dynamic Array with refcount, lenght and capacity (log capacity).   
 Classic vector, start with a default size to avoid primary reallocation, not prone to be used outside the lenght, data is public and open to iterate throw it (like in array).
 
+**Structure**: 
+- `rc` reference count (smart pointer)
+- `nelem` number of element saved
+- `cap` current max capacity
+- `free` smart pointer to free an element (can be NULL)
+- `data` array containing values
+
+**API**:  
+- push = insert in the top a value
+- pop = remove from the top
+- set = overright value in a (valid) position
+- get = retrieve value from a (valid) position
+- import = import all value from another (same type) vector without side effect
+
+If you want to sort it just use `qsort(vec->data, vec->nelem, sizeof(vec->data[0]), my_cmp_func)`.  
+No need to reinvent the wheel (for ordered set there are other useful object)
+
 ## Map
 
 ```c

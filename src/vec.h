@@ -11,7 +11,8 @@ extern "C" {
         typedef struct name {                                                                      \
                 uint32_t rc;                                                                       \
                 uint32_t nelem;                                                                    \
-                uint8_t log_cap;                                                                   \
+                uint32_t cap;                                                                      \
+                void (*free)(T);                                                                   \
                 T *data;                                                                           \
         } name;                                                                                    \
                                                                                                    \
@@ -22,13 +23,13 @@ extern "C" {
                         return NULL;                                                               \
                 self->rc = 1;                                                                      \
                 self->nelem = 0;                                                                   \
-                self->log_cap = 3;                                                                 \
-                if ((unsigned long)(1 << self->log_cap) >= SIZE_MAX / sizeof(T)) {                 \
+                self->cap = 1 << 3;                                                                \
+                self->free = NULL;                                                                 \
+                if ((unsigned long)(self->cap) >= SIZE_MAX / sizeof(T)) {                          \
                         cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \
                 }                                                                                  \
-                self->data =                                                                       \
-                    cops_default_allocator.alloc(sizeof(T) * ((size_t)1 << self->log_cap));        \
+                self->data = cops_default_allocator.alloc(sizeof(T) * (size_t)self->cap);          \
                 if (!self->data) {                                                                 \
                         cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \
@@ -46,6 +47,11 @@ extern "C" {
         static inline name *name##_free(name *self)                                                \
         {                                                                                          \
                 if (self && self->rc > 0 && !(--self->rc)) {                                       \
+                        if (self->free) {                                                          \
+                                for (size_t i = 0; i < self->nelem; i++) {                         \
+                                        self->free(self->data[i]);                                 \
+                                }                                                                  \
+                        }                                                                          \
                         cops_default_allocator.free(self->data);                                   \
                         cops_default_allocator.free(self);                                         \
                 }                                                                                  \
@@ -56,21 +62,18 @@ extern "C" {
         {                                                                                          \
                 if (!self || !self->data)                                                          \
                         return -1;                                                                 \
-                if (self->nelem == (uint32_t)(1 << self->log_cap)) {                               \
-                        if ((unsigned long)(2 << self->log_cap) > (SIZE_MAX / sizeof(T))) {        \
+                if (self->nelem == (uint32_t)self->cap) {                                          \
+                        if ((unsigned long)(2 * self->cap) > (SIZE_MAX / sizeof(T))) {             \
                                 return -2;                                                         \
                         }                                                                          \
                         T *old = self->data;                                                       \
-                        T *new = cops_default_allocator.alloc(sizeof(T) *                          \
-                                                              ((size_t)2 << self->log_cap));       \
+                        T *new = cops_default_allocator.realloc(old, sizeof(T) *                   \
+                                                                         (size_t)(2 * self->cap)); \
                         if (!new)                                                                  \
                                 return -1;                                                         \
-                        memset(new, 0, sizeof(T) * ((size_t)2 << self->log_cap));                  \
-                        memcpy(new, old, sizeof(T) * ((size_t)1 << self->log_cap));                \
-                        memset(old, 0, sizeof(T) * ((size_t)1 << self->log_cap));                  \
-                        self->log_cap++;                                                           \
+                        memset(new + self->cap, 0, sizeof(T) * (size_t)self->cap);                 \
+                        self->cap *= 2;                                                            \
                         self->data = new;                                                          \
-                        cops_default_allocator.free(old);                                          \
                 }                                                                                  \
                 T *trg = self->data + self->nelem++;                                               \
                 memcpy(trg, &val, sizeof(T));                                                      \
@@ -86,6 +89,8 @@ extern "C" {
                 T *trg = self->data + --self->nelem;                                               \
                 if (res)                                                                           \
                         memcpy(res, trg, sizeof(T));                                               \
+                if (self->free)                                                                    \
+                        self->free(*trg);                                                          \
                 memset(trg, 0, sizeof(T));                                                         \
                 return 0;                                                                          \
         }                                                                                          \
@@ -99,18 +104,41 @@ extern "C" {
                 if (pos > self->nelem)                                                             \
                         return -2;                                                                 \
                 T *trg = self->data + pos;                                                         \
-                memcpy(trg, &val, sizeof(T));                                                      \
+                if (self->free)                                                                    \
+                        self->free(*trg);                                                          \
+                *trg = val;                                                                        \
                 return 0;                                                                          \
         }                                                                                          \
                                                                                                    \
         static inline int name##_get(name *self, uint32_t pos, T *res)                             \
         {                                                                                          \
-                if (!self || !res || !self->data)                                                  \
+                if (!self || !self->data)                                                          \
                         return -1;                                                                 \
                 if (pos >= self->nelem)                                                            \
                         return -2;                                                                 \
                 T *trg = self->data + pos;                                                         \
-                memcpy(res, trg, sizeof(T));                                                       \
+                if (res)                                                                           \
+                        *res = *trg;                                                               \
+                return 0;                                                                          \
+        }                                                                                          \
+                                                                                                   \
+        static inline int name##_import(name *self, const name *oth)                               \
+        {                                                                                          \
+                if (!self || !self->data || !oth || !oth->data)                                    \
+                        return -1;                                                                 \
+                uint32_t new_cap = self->cap;                                                      \
+                while (self->nelem + oth->nelem > new_cap)                                         \
+                        new_cap *= 2;                                                              \
+                if (new_cap != self->cap) {                                                        \
+                        T *new = cops_default_allocator.realloc(self->data, new_cap);              \
+                        if (!new)                                                                  \
+                                return -1;                                                         \
+                        memset(new + self->cap, 0, (size_t)(new_cap - self->cap) * sizeof(T));     \
+                        self->data = new;                                                          \
+                        self->cap = new_cap;                                                       \
+                }                                                                                  \
+                memcpy(self->data + self->nelem, oth->data, sizeof(T) * (size_t)oth->nelem);       \
+                self->nelem += oth->nelem;                                                         \
                 return 0;                                                                          \
         }
 
