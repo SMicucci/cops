@@ -22,9 +22,6 @@ void print_vtest(vtest *v);
 void print_vint(vint *v);
 void print_str_vec(str_vec *v);
 
-static inline void format_number(unsigned int n, char res[28]);
-static inline int pow_(int base, int exp);
-
 static inline void str_free(char *mem);
 
 int test_vec()
@@ -103,7 +100,7 @@ int test_vec()
         print_str_vec(v3);
 
         printf("\n~~~~~~~~~~  " Yb B Pf "performance test" D " ~~~~~~~~~~\n");
-        for (int k = 2; k < 10; k++) {
+        for (int k = 4; k < 10; k++) {
                 printf("\n");
                 vint *v = vint_new();
                 const int N = 1 << (18 + (k));
@@ -210,35 +207,6 @@ void print_vint(vint *v)
 #ifdef C
 #undef C
 #endif
-
-static inline int pow_(int base, int exp)
-{
-        int res = 1;
-        for (int i = 0; i < exp; i++) {
-                res *= base;
-        }
-        return res;
-}
-
-static inline void format_number(unsigned int n, char res[28])
-{
-        int dept = 0, tmp = n;
-        while (tmp > 9) {
-                tmp = tmp / 10;
-                dept++;
-        }
-        char *c = res;
-        tmp = n;
-        for (int i = dept; i >= 0; i--) {
-                int p = pow_(10, i);
-                int val = tmp / p;
-                *c++ = (char)(val + 48);
-                tmp -= val * p;
-                if (!(i % 3) && i)
-                        *c++ = '\'';
-        }
-        *c = '\0';
-}
 
 static inline void str_free(char *mem)
 {
