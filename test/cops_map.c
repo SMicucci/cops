@@ -18,11 +18,10 @@ X(fmap, long, long)
 
 static inline int _cmp(string *s1, string *s2) { return strcmp(s1->data, s2->data); }
 static inline size_t _hash(string *s) { return djb2(s->data); }
+static inline void _free(string *s) { string_free(s); }
 
 static inline int _fcmp(long l1, long l2) { return (l1 > l2) - (l1 < l2); }
 static inline size_t _fhash(long l) { return longhash(l); }
-
-static inline void _free_str(string *s) { string_free(s); }
 
 void print_map(map *m);
 
@@ -44,7 +43,7 @@ int test_map()
         printf("~~~~~~~~~~   test cops_map   ~~~~~~~~~~\n");
         printf("\n - create new map\n");
         map *m = map_new(_hash, _cmp);
-        m->free_key = _free_str;
+        m->free_key = _free;
         print_map(m);
         printf("\n - insert some key\n");
         const int N = 27;
@@ -117,6 +116,10 @@ int test_map()
         printf("\n - new maps\n");
         map *m1 = map_new(_hash, _cmp);
         map *m2 = map_new(_hash, _cmp);
+        m1->free_key = _free;
+        m2->free_key = _free;
+        m1->dup_key = string_dup;
+        m2->dup_key = string_dup;
         for (int i = 0; i < 8; i++) {
                 char *t = names[i];
                 size_t l = strlen(t);
@@ -136,6 +139,8 @@ int test_map()
         printf("\n - import maps\n");
         map_import(m1, m2);
         print_map(m1);
+        m2 = map_free(m2);
+        m1 = map_free(m1);
 
         printf("\n~~~~~~~~~~  " Yb B Pf "performance test" D " ~~~~~~~~~~\n");
         for (int k = 2; k < 8; k++) {

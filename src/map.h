@@ -45,6 +45,8 @@ extern "C" {
                 int (*cmp)(K, K);                                                                  \
                 void (*free_key)(K);                                                               \
                 void (*free_val)(V);                                                               \
+                K (*dup_key)(K);                                                                   \
+                V (*dup_val)(V);                                                                   \
         } name;                                                                                    \
                                                                                                    \
         static inline name *name##_new(size_t (*hash)(K), int (*cmp)(K, K))                        \
@@ -289,8 +291,17 @@ extern "C" {
                 for (size_t i = 0; i < oth->cap; i++) {                                            \
                         name##_node *n = oth->data + i;                                            \
                         if (n->flag < 0x40) {                                                      \
-                                if (name##_add(self, n->key, n->val))                              \
-                                        name##_set(self, n->key, n->val);                          \
+                                K key = n->key;                                                    \
+                                V val = n->val;                                                    \
+                                if (self->dup_val)                                                 \
+                                        val = self->dup_val(n->val);                               \
+                                if (name##_has(self, key) == 1) {                                  \
+                                        name##_set(self, key, val);                                \
+                                } else {                                                           \
+                                        if (self->dup_key)                                         \
+                                                key = self->dup_key(n->key);                       \
+                                        name##_add(self, key, val);                                \
+                                }                                                                  \
                         }                                                                          \
                 }                                                                                  \
                 return 0;                                                                          \
