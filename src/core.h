@@ -19,6 +19,31 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * basic string hash function
+ */
+static inline size_t djb2(char *s)
+{
+        size_t hash = 5381;
+        int c;
+        while ((c = *s++))
+                hash = ((hash << 5) + hash) + c;
+        return hash;
+}
+
+static inline size_t longhash(unsigned long l)
+{
+        size_t x = (size_t)l;
+        x = (~x) + (x << 21);
+        x = x ^ (x >> 24);
+        x = (x + (x << 3)) + (x << 8);
+        x = x ^ (x >> 14);
+        x = (x + (x << 2)) + (x << 4);
+        x = x + (x << 28);
+        x = x + (x << 31);
+        return x;
+}
+
 static inline void *cops_alloc(size_t size) { return calloc(size, 1); }
 
 /**
