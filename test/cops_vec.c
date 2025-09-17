@@ -24,7 +24,7 @@ void print_str_vec(str_vec *v);
 
 static inline void str_free(char *mem);
 
-int test_vec()
+int test_vec(int type)
 {
         char *names[] = {
             "apple",  "book",   "cat",    "dog",    "elephant", "flower",   "grape",    "house",
@@ -36,69 +36,71 @@ int test_vec()
             "canyon", "meadow", "cliff",  "spring", "cave",     "harvest",  "dawn",     "ember",
             "peak"};
         printf("~~~~~~~~~~   test cops_vec   ~~~~~~~~~~\n");
-        printf("\n - create new test vector\n");
-        vtest *v2 = vtest_new();
-        print_vtest(v2);
-        printf("\n - increase refcount\n");
-        vtest *v2_arr[4];
-        for (int i = 0; i < 4; i++) {
-                if (i != 0)
-                        v2_arr[i] = vtest_dup(v2_arr[i - 1]);
-                else
-                        v2_arr[i] = vtest_dup(v2);
-        }
-        print_vtest(v2);
-        printf("\n - insert some element\n");
-        for (int i = 0; i < 14; i++) {
-                if (vtest_push(v2, (struct test){(30 + (i * i + i) / 2), names[i], 15 + i / 2})) {
-                        printf("failed insertion!\n");
-                        return 1;
+        if (type != 1) {
+                printf("\n - create new test vector\n");
+                vtest *v2 = vtest_new();
+                print_vtest(v2);
+                printf("\n - increase refcount\n");
+                vtest *v2_arr[4];
+                for (int i = 0; i < 4; i++) {
+                        if (i != 0)
+                                v2_arr[i] = vtest_dup(v2_arr[i - 1]);
+                        else
+                                v2_arr[i] = vtest_dup(v2);
                 }
-        }
-        print_vtest(v2);
-        printf("\n - get and set some element\n");
-        for (unsigned int i = 0; i < v2->nelem; i++) {
-                if (!(i % 3)) {
-                        struct test t;
-                        vtest_get(v2, i, &t);
-                        t.name = "~~~~~ mod ~~~~~";
-                        t.age += 30;
-                        vtest_set(v2, i, t);
+                print_vtest(v2);
+                printf("\n - insert some element\n");
+                for (int i = 0; i < 14; i++) {
+                        if (vtest_push(
+                                v2, (struct test){(30 + (i * i + i) / 2), names[i], 15 + i / 2})) {
+                                printf("failed insertion!\n");
+                                return 1;
+                        }
                 }
-        }
-        print_vtest(v2);
-        printf("\n - delete all element\n");
-        for (unsigned int i = 0; i < (v2->nelem / 2); i++) {
-                vtest_pop(v2, NULL);
-        }
-        print_vtest(v2);
-        printf("\n - decrease refcount\n");
-        for (int i = 0; i < 4; i++) {
-                v2_arr[i] = vtest_free(v2_arr[i]);
-        }
-        print_vtest(v2);
-        printf("\n - free test vector\n");
-        v2 = vtest_free(v2);
-        print_vtest(v2);
+                print_vtest(v2);
+                printf("\n - get and set some element\n");
+                for (unsigned int i = 0; i < v2->nelem; i++) {
+                        if (!(i % 3)) {
+                                struct test t;
+                                vtest_get(v2, i, &t);
+                                t.name = "~~~~~ mod ~~~~~";
+                                t.age += 30;
+                                vtest_set(v2, i, t);
+                        }
+                }
+                print_vtest(v2);
+                printf("\n - delete all element\n");
+                for (unsigned int i = 0; i < (v2->nelem / 2); i++) {
+                        vtest_pop(v2, NULL);
+                }
+                print_vtest(v2);
+                printf("\n - decrease refcount\n");
+                for (int i = 0; i < 4; i++) {
+                        v2_arr[i] = vtest_free(v2_arr[i]);
+                }
+                print_vtest(v2);
+                printf("\n - free test vector\n");
+                v2 = vtest_free(v2);
+                print_vtest(v2);
 
-        printf("\n - new string vector\n");
-        str_vec *v3 = str_vec_new();
-        v3->free = str_free;
-        print_str_vec(v3);
-        printf("\n - insert some string\n");
-        for (int i = 0; i < 14; i++) {
-                int t = rand() % 50;
-                const char *val = names[t];
-                size_t len = strlen(val);
-                char *trg = cops_default_allocator.alloc(len + 1);
-                strcpy(trg, val);
-                str_vec_push(v3, trg);
+                printf("\n - new string vector\n");
+                str_vec *v3 = str_vec_new();
+                v3->free = str_free;
+                print_str_vec(v3);
+                printf("\n - insert some string\n");
+                for (int i = 0; i < 14; i++) {
+                        int t = rand() % 50;
+                        const char *val = names[t];
+                        size_t len = strlen(val);
+                        char *trg = cops_default_allocator.alloc(len + 1);
+                        strcpy(trg, val);
+                        str_vec_push(v3, trg);
+                }
+                print_str_vec(v3);
+                printf("\n - free string vector\n");
+                v3 = str_vec_free(v3);
+                print_str_vec(v3);
         }
-        print_str_vec(v3);
-        printf("\n - free string vector\n");
-        v3 = str_vec_free(v3);
-        print_str_vec(v3);
-
         printf("\n~~~~~~~~~~  " Yb B Pf "performance test" D " ~~~~~~~~~~\n");
         for (int k = 4; k < 10; k++) {
                 printf("\n");

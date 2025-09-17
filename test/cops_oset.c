@@ -1,1 +1,1 @@
-int test_oset() { return 0; }
+int test_oset(int type) { return type; }

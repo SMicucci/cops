@@ -3,6 +3,8 @@ TFLAG = -fsanitize=address,undefined,leak -fno-omit-frame-pointer -g -O0
 RFLAG = -O3
 LDFLAGS = -shared -Wl,-soname,libcops.so.1
 
+TEST_FLAG =
+
 SRC_d = src
 TEST_d = test
 OBJ_d = obj
@@ -16,11 +18,16 @@ S_OBJs = $(patsubst $(SRC_d)/%.c,$(OBJ_d)/%.o,$(SRCs))
 TEST = $(BIN_d)/test
 LIB = $(BIN_d)/libcops.so
 
-.PHONY: all test install uninstall clean
+.PHONY: all test install uninstall clean speed
 
 all: $(LIB)
 	@echo -e "[\e[36mcops\e[0m]: \e[32mdynamic library created!\e[0m"
 
+speed: TEST_FLAG = $(TFLAG)
+speed: $(TEST)
+	@echo -e "[\e[36mcops\e[0m]: \e[32mtest for speed!\e[0m"
+
+test: TEST_FLAG = $(TFLAG)
 test: $(TEST)
 	@echo -e "[\e[36mcops\e[0m]: \e[32mtest created!\e[0m"
 
@@ -45,7 +52,7 @@ uninstall:
 
 $(OBJ_d)/%.o: $(TEST_d)/%.c | $(OBJ_d)
 	@echo -e "[\e[36mcops\e[0m]: \e[34mbuilding "$@"\e[0m..."
-	@$(CC) $(CFLAGS) $(TFLAG) -c $< -o $@
+	@$(CC) $(CFLAGS) $(TEST_FLAG) -c $< -o $@
 
 $(OBJ_d)/%.o: $(SRC_d)/%.c | $(OBJ_d)
 	@echo -e "[\e[36mcops\e[0m]: \e[34mbuilding "$@"\e[0m..."
@@ -56,7 +63,7 @@ $(OBJ_d) $(BIN_d):
 
 $(TEST): $(T_OBJs) | $(BIN_d)
 	@echo -e "[\e[36mcops\e[0m]: \e[33mcreating "$@"\e[0m..."
-	@$(CC) $(CFLAGS) $(TFLAG) $^ -o $@
+	@$(CC) $(CFLAGS) $(TEST_FLAG) $^ -o $@
 
 
 $(LIB): $(S_OBJs) | $(BIN_d)

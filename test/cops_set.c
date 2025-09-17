@@ -36,7 +36,7 @@ static inline void _free_str(string *s) { string_free(s); }
 
 void print_set(set *s);
 
-int test_set()
+int test_set(int type)
 {
         char *names[] = {"apple",    "book",     "cat",     "dog",       "elephant", "flower",
                          "grape",    "house",    "island",  "jungle",    "kite",     "lemon",
@@ -50,109 +50,111 @@ int test_set()
                          "dawn",     "ember",    "peak",    "riverbank", "mirror",   "crown",
                          "torch",    "temple",   "lantern", "village"};
 
-        printf("~~~~~~~~~~   test cops_map   ~~~~~~~~~~\n");
-        printf("\n - create new set\n");
-        set *m = set_new(_user_hash, _user_cmp);
-        m->free = _user_free;
-        m->dup = _user_dup;
-        print_set(m);
-        printf("\n - insert some key\n");
-        const int N = 6;
-        for (int i = 0; i < N * 2; i++) {
-                user_t s;
-                char *t = names[i];
-                size_t l = strlen(t);
-                s.name = string_new(l + 1);
-                s.id = i;
-                strcpy(s.name->data, t);
-                if (set_add(m, s)) {
-                        printf("('%s' exist yet!)\n", s.name->data);
+        printf("~~~~~~~~~~   test cops_set   ~~~~~~~~~~\n");
+        if (type != 1) {
+                printf("\n - create new set\n");
+                set *m = set_new(_user_hash, _user_cmp);
+                m->free = _user_free;
+                m->dup = _user_dup;
+                print_set(m);
+                printf("\n - insert some key\n");
+                const int N = 6;
+                for (int i = 0; i < N * 2; i++) {
+                        user_t s;
+                        char *t = names[i];
+                        size_t l = strlen(t);
+                        s.name = string_new(l + 1);
+                        s.id = i;
+                        strcpy(s.name->data, t);
+                        if (set_add(m, s)) {
+                                printf("('%s' exist yet!)\n", s.name->data);
+                                s.name = string_free(s.name);
+                        }
+                }
+                print_set(m);
+                printf("\n - remove some key\n");
+                printf("   > deleted: {");
+                for (int i = 0; i < N; i++) {
+                        user_t s;
+                        char *t = names[i];
+                        size_t l = strlen(t);
+                        s.name = string_new(l + 1);
+                        s.id = i;
+                        strcpy(s.name->data, t);
+                        if (set_has(m, s) == 1) {
+                                set_del(m, s);
+                                printf("\"" Gf "%s" D "\"", t);
+                                if (i != (N / 2) - 1)
+                                        printf(", ");
+                        }
                         s.name = string_free(s.name);
                 }
-        }
-        print_set(m);
-        printf("\n - remove some key\n");
-        printf("   > deleted: {");
-        for (int i = 0; i < N; i++) {
-                user_t s;
-                char *t = names[i];
-                size_t l = strlen(t);
-                s.name = string_new(l + 1);
-                s.id = i;
-                strcpy(s.name->data, t);
-                if (set_has(m, s) == 1) {
-                        set_del(m, s);
-                        printf("\"" Gf "%s" D "\"", t);
-                        if (i != (N / 2) - 1)
-                                printf(", ");
+                printf("}\n\n");
+                print_set(m);
+                printf("\n - change some value\n");
+                printf("   > modified: [");
+                for (int i = N; i < N * 2; i++) {
+                        user_t s;
+                        char *t = "~~~ update ~~~";
+                        size_t l = strlen(t);
+                        s.name = string_new(l + 1);
+                        s.id = i;
+                        strcpy(s.name->data, t);
+                        if (set_has(m, s) == 1) {
+                                user_t u;
+                                printf("\"" Gf "%s" D "\":", t);
+                                set_get(m, s, &u);
+                                printf(Bf "{id:" Bf B "%02ld" D " name:'" B Gf "%s" D "'}", u.id,
+                                       u.name->data);
+                                set_set(m, s);
+                                if (i != (N / 2) - 1)
+                                        printf(", ");
+                        }
                 }
-                s.name = string_free(s.name);
-        }
-        printf("}\n\n");
-        print_set(m);
-        printf("\n - change some value\n");
-        printf("   > modified: [");
-        for (int i = N; i < N * 2; i++) {
-                user_t s;
-                char *t = "~~~ update ~~~";
-                size_t l = strlen(t);
-                s.name = string_new(l + 1);
-                s.id = i;
-                strcpy(s.name->data, t);
-                if (set_has(m, s) == 1) {
-                        user_t u;
-                        printf("\"" Gf "%s" D "\":", t);
-                        set_get(m, s, &u);
-                        printf(Bf "{id:" Bf B "%02ld" D " name:'" B Gf "%s" D "'}", u.id,
-                               u.name->data);
-                        set_set(m, s);
-                        if (i != (N / 2) - 1)
-                                printf(", ");
+                printf("]\n\n");
+                print_set(m);
+                printf("\n - free set\n");
+                m = set_free(m);
+                print_set(m);
+                printf("\n - new sets\n");
+                set *m1 = set_new(_user_hash, _user_cmp);
+                set *m2 = set_new(_user_hash, _user_cmp);
+                m1->free = _user_free;
+                m1->dup = _user_dup;
+                m2->free = _user_free;
+                m2->dup = _user_dup;
+                for (int i = 0; i < 8; i++) {
+                        user_t s;
+                        char *t = names[i];
+                        size_t l = strlen(t);
+                        s.name = string_new(l + 1);
+                        s.id = i;
+                        strcpy(s.name->data, t);
+                        if (set_add(m1, s)) {
+                                printf("   (%02ld, '%s' exist yet!)\n", s.id, s.name->data);
+                                s.name = string_free(s.name);
+                        }
                 }
-        }
-        printf("]\n\n");
-        print_set(m);
-        printf("\n - free set\n");
-        m = set_free(m);
-        print_set(m);
-        printf("\n - new sets\n");
-        set *m1 = set_new(_user_hash, _user_cmp);
-        set *m2 = set_new(_user_hash, _user_cmp);
-        m1->free = _user_free;
-        m1->dup = _user_dup;
-        m2->free = _user_free;
-        m2->dup = _user_dup;
-        for (int i = 0; i < 8; i++) {
-                user_t s;
-                char *t = names[i];
-                size_t l = strlen(t);
-                s.name = string_new(l + 1);
-                s.id = i;
-                strcpy(s.name->data, t);
-                if (set_add(m1, s)) {
-                        printf("   (%02ld, '%s' exist yet!)\n", s.id, s.name->data);
-                        s.name = string_free(s.name);
+                for (int i = 6; i < 13; i++) {
+                        user_t s;
+                        char *t = names[i];
+                        size_t l = strlen(t);
+                        s.name = string_new(l + 1);
+                        s.id = i;
+                        strcpy(s.name->data, t);
+                        if (set_add(m2, s)) {
+                                printf("   (%02ld, '%s' exist yet!)\n", s.id, s.name->data);
+                                s.name = string_free(s.name);
+                        }
                 }
+                print_set(m1);
+                print_set(m2);
+                printf("\n - import set\n");
+                set_import(m1, m2);
+                print_set(m1);
+                m1 = set_free(m1);
+                m2 = set_free(m2);
         }
-        for (int i = 6; i < 13; i++) {
-                user_t s;
-                char *t = names[i];
-                size_t l = strlen(t);
-                s.name = string_new(l + 1);
-                s.id = i;
-                strcpy(s.name->data, t);
-                if (set_add(m2, s)) {
-                        printf("   (%02ld, '%s' exist yet!)\n", s.id, s.name->data);
-                        s.name = string_free(s.name);
-                }
-        }
-        print_set(m1);
-        print_set(m2);
-        printf("\n - import set\n");
-        set_import(m1, m2);
-        print_set(m1);
-        m1 = set_free(m1);
-        m2 = set_free(m2);
 
         printf("\n~~~~~~~~~~  " Yb B Pf "performance test" D " ~~~~~~~~~~\n");
         for (int k = 2; k < 8; k++) {

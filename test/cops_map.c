@@ -25,7 +25,7 @@ static inline size_t _fhash(long l) { return longhash(l); }
 
 void print_map(map *m);
 
-int test_map()
+int test_map(int type)
 {
         char *names[] = {"apple",    "book",     "cat",     "dog",       "elephant", "flower",
                          "grape",    "house",    "island",  "jungle",    "kite",     "lemon",
@@ -41,106 +41,108 @@ int test_map()
 
         srand((unsigned int)time(NULL));
         printf("~~~~~~~~~~   test cops_map   ~~~~~~~~~~\n");
-        printf("\n - create new map\n");
-        map *m = map_new(_hash, _cmp);
-        m->free_key = _free;
-        print_map(m);
-        printf("\n - insert some key\n");
-        const int N = 27;
-        int r = rand() % 64;
-        for (int i = 0; i < N * 2; i++) {
-                char *t = names[i];
-                size_t l = strlen(t);
-                string *s = string_new(l + 1);
-                strcpy(s->data, t);
-                if (map_add(m, s, (double)(rand() % 100))) {
-                        printf("('%s' exist yet!)\n", s->data);
+        if (type != 1) {
+                printf("\n - create new map\n");
+                map *m = map_new(_hash, _cmp);
+                m->free_key = _free;
+                print_map(m);
+                printf("\n - insert some key\n");
+                const int N = 27;
+                int r = rand() % 64;
+                for (int i = 0; i < N * 2; i++) {
+                        char *t = names[i];
+                        size_t l = strlen(t);
+                        string *s = string_new(l + 1);
+                        strcpy(s->data, t);
+                        if (map_add(m, s, (double)(rand() % 100))) {
+                                printf("('%s' exist yet!)\n", s->data);
+                                s = string_free(s);
+                                i--;
+                        }
+                        r += 3;
+                        r %= 64;
+                }
+                print_map(m);
+                printf("\n - remove some key\n");
+                printf("   > deleted: {");
+                r = rand() % 64;
+                for (int i = 0; i < N; i++) {
+                        char *t = names[r];
+                        size_t l = strlen(t);
+                        string *s = string_new(l + 1);
+                        strcpy(s->data, t);
+                        if (map_has(m, s) == 1) {
+                                double d = 0;
+                                map_del(m, s, &d);
+                                printf("\"" Gf "%s" D "\"", t);
+                                if (i != (N / 2) - 1)
+                                        printf(", ");
+                        } else {
+                                i--;
+                        }
+                        r++;
+                        r %= 64;
                         s = string_free(s);
-                        i--;
                 }
-                r += 3;
-                r %= 64;
-        }
-        print_map(m);
-        printf("\n - remove some key\n");
-        printf("   > deleted: {");
-        r = rand() % 64;
-        for (int i = 0; i < N; i++) {
-                char *t = names[r];
-                size_t l = strlen(t);
-                string *s = string_new(l + 1);
-                strcpy(s->data, t);
-                if (map_has(m, s) == 1) {
-                        double d = 0;
-                        map_del(m, s, &d);
-                        printf("\"" Gf "%s" D "\"", t);
-                        if (i != (N / 2) - 1)
-                                printf(", ");
-                } else {
-                        i--;
+                printf("}\n\n");
+                print_map(m);
+                printf("\n - change some value\n");
+                r = rand() % 64;
+                printf("   > modified: {");
+                for (int i = 0; i < N; i++) {
+                        char *t = names[r];
+                        size_t l = strlen(t);
+                        string *s = string_new(l + 1);
+                        strcpy(s->data, t);
+                        if (map_has(m, s) == 1) {
+                                double d;
+                                printf("\"" Gf "%s" D "\":", t);
+                                map_get(m, s, &d);
+                                printf(Bf "%.1f" D "", d);
+                                map_set(m, s, -2.0);
+                                if (i != (N / 2) - 1)
+                                        printf(", ");
+                        } else {
+                                i--;
+                        }
+                        r++;
+                        r %= 64;
+                        s = string_free(s);
                 }
-                r++;
-                r %= 64;
-                s = string_free(s);
-        }
-        printf("}\n\n");
-        print_map(m);
-        printf("\n - change some value\n");
-        r = rand() % 64;
-        printf("   > modified: {");
-        for (int i = 0; i < N; i++) {
-                char *t = names[r];
-                size_t l = strlen(t);
-                string *s = string_new(l + 1);
-                strcpy(s->data, t);
-                if (map_has(m, s) == 1) {
-                        double d;
-                        printf("\"" Gf "%s" D "\":", t);
-                        map_get(m, s, &d);
-                        printf(Bf "%.1f" D "", d);
-                        map_set(m, s, -2.0);
-                        if (i != (N / 2) - 1)
-                                printf(", ");
-                } else {
-                        i--;
+                printf("}\n\n");
+                print_map(m);
+                printf("\n - free map\n");
+                m = map_free(m);
+                print_map(m);
+                printf("\n - new maps\n");
+                map *m1 = map_new(_hash, _cmp);
+                map *m2 = map_new(_hash, _cmp);
+                m1->free_key = _free;
+                m2->free_key = _free;
+                m1->dup_key = string_dup;
+                m2->dup_key = string_dup;
+                for (int i = 0; i < 8; i++) {
+                        char *t = names[i];
+                        size_t l = strlen(t);
+                        string *s = string_new(l + 1);
+                        strcpy(s->data, t);
+                        map_add(m1, s, (double)i);
                 }
-                r++;
-                r %= 64;
-                s = string_free(s);
+                for (int i = 6; i < 13; i++) {
+                        char *t = names[i];
+                        size_t l = strlen(t);
+                        string *s = string_new(l + 1);
+                        strcpy(s->data, t);
+                        map_add(m2, s, (double)-i);
+                }
+                print_map(m1);
+                print_map(m2);
+                printf("\n - import maps\n");
+                map_import(m1, m2);
+                print_map(m1);
+                m2 = map_free(m2);
+                m1 = map_free(m1);
         }
-        printf("}\n\n");
-        print_map(m);
-        printf("\n - free map\n");
-        m = map_free(m);
-        print_map(m);
-        printf("\n - new maps\n");
-        map *m1 = map_new(_hash, _cmp);
-        map *m2 = map_new(_hash, _cmp);
-        m1->free_key = _free;
-        m2->free_key = _free;
-        m1->dup_key = string_dup;
-        m2->dup_key = string_dup;
-        for (int i = 0; i < 8; i++) {
-                char *t = names[i];
-                size_t l = strlen(t);
-                string *s = string_new(l + 1);
-                strcpy(s->data, t);
-                map_add(m1, s, (double)i);
-        }
-        for (int i = 6; i < 13; i++) {
-                char *t = names[i];
-                size_t l = strlen(t);
-                string *s = string_new(l + 1);
-                strcpy(s->data, t);
-                map_add(m2, s, (double)-i);
-        }
-        print_map(m1);
-        print_map(m2);
-        printf("\n - import maps\n");
-        map_import(m1, m2);
-        print_map(m1);
-        m2 = map_free(m2);
-        m1 = map_free(m1);
 
         printf("\n~~~~~~~~~~  " Yb B Pf "performance test" D " ~~~~~~~~~~\n");
         for (int k = 2; k < 8; k++) {

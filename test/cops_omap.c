@@ -1,1 +1,1 @@
-int test_omap() { return 0; }
+int test_omap(int type) { return type; }
