@@ -38,21 +38,34 @@ init_cops_arr(T)
 
 Static Array with refcount and lenght, a small payload for a safer generic array.
 
+**Structure**:  
+- `len` data lenght
+- `rc` reference counter (smart pointer)
+- `data` variable array to hold statically data
+
+**API**:  
+- new = initialize new object
+- dup = duplicate (adjust rc)
+- free = free memory (adjust rc)
+
+Those **API** are in common with all the other classes to handle multithreading in a simple way for a fundamental structure like oset or vec.
+
 ## Vector
 
 ```c
 init_cops_vec(T)
 ```
 
-Dynamic Array with refcount, lenght and capacity (log capacity).   
+Dynamic Array with refcount, lenght and capacity.   
 Classic vector, start with a default size to avoid primary reallocation, not prone to be used outside the lenght, data is public and open to iterate throw it (like in array).
 
 **Structure**: 
 - `rc` reference count (smart pointer)
 - `nelem` number of element saved
 - `cap` current max capacity
-- `free` smart pointer to free an element (can be NULL)
 - `data` array containing values
+- `free` function pointer to free an element (nullable)
+- `dup` function pointer to duplicate an element (nullable)
 
 **API**:  
 - push = insert in the top a value
@@ -70,10 +83,32 @@ No need to reinvent the wheel (for ordered set there are other useful object)
 init_cops_map(K, V)
 ```
 
-Hashmap, require an hash function and a compare function at creation, is given a string hash function (djb2).  
-in the hasmap is used triangular/quadratic probing in a power of 2 size, robin hood logic to balance jump, in this way we avoid chunking and mitigate probing with robin hood logic.
+Hashmap with some implemented hash function.  
+vector logic behind data structure, robin hood brobe mechanic with a quadratic probing.  
+`(i * i + 1) / 2`
 
-this kind of implementation is used in rust and other language standard library implementation
+**Structure**: 
+- `<name>_node` key-value map node
+    - `flag` robin hodd flag, 0x80 free, 0x40 tombstone, other are jump occurred
+    - `key` hashmap key (unique)
+    - `val` hasmap value
+- `rc` reference count (smart pointer)
+- `nelem` number of element saved
+- `cap` current max capacity
+- `data` array containing values
+- `free_key` function pointer to free a node key (nullable)
+- `free_val` function pointer to free a node value (nullable)
+- `dup_key` function pointer update rc of node key (nullable)
+- `dup_val` function pointer update rc of node value (nullable)
+
+**API**:  
+- add = add key-value pair if key doesn't exist
+- set = update value on map node if key exist
+- has = check if key exist, 1 if true, 0 if false
+- del = remove map node if key exist
+- get = retrieve value from a (valid) position
+- import = import all value from another (same type) map with side effect
+
 
 ## Set
 
@@ -81,8 +116,29 @@ this kind of implementation is used in rust and other language standard library 
 init_cops_set(T)
 ```
 
-Hashset, porting map logic to set implementation.  
-Set with cmp and hash function can be used with a struct like is a map but with a more simple "mind logic" in my opinion
+
+Hashset with some implemented hash function.  
+vector logic behind data structure, robin hood brobe mechanic with a quadratic probing.  
+`(i * i + 1) / 2`
+
+**Structure**: 
+- `<name>_node` set node with robin hood flag
+    - `flag` robin hodd flag, 0x80 free, 0x40 tombstone, other are jump occurred
+    - `val` hasset value
+- `rc` reference count (smart pointer)
+- `nelem` number of element saved
+- `cap` current max capacity
+- `data` array containing values
+- `free` function pointer to free a node value (nullable)
+- `dup` function pointer update rc of node value (nullable)
+
+**API**:  
+- add = add key-value pair if key doesn't exist
+- set = update value on map node if key exist
+- has = check if key exist, 1 if true, 0 if false
+- del = remove map node if key exist
+- get = retrieve value from a (valid) position
+- import = import all value from another (same type) map with side effect
 
 ## Omap
 

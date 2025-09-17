@@ -13,6 +13,7 @@ extern "C" {
                 uint32_t nelem;                                                                    \
                 uint32_t cap;                                                                      \
                 void (*free)(T);                                                                   \
+                T (*dup)(T);                                                                       \
                 T *data;                                                                           \
         } name;                                                                                    \
                                                                                                    \
@@ -126,6 +127,8 @@ extern "C" {
         {                                                                                          \
                 if (!self || !self->data || !oth || !oth->data)                                    \
                         return -1;                                                                 \
+                if (self->nelem > UINT32_MAX - oth->nelem)                                         \
+                        return -1;                                                                 \
                 uint32_t new_cap = self->cap;                                                      \
                 while (self->nelem + oth->nelem > new_cap)                                         \
                         new_cap *= 2;                                                              \
@@ -137,7 +140,14 @@ extern "C" {
                         self->data = new;                                                          \
                         self->cap = new_cap;                                                       \
                 }                                                                                  \
-                memcpy(self->data + self->nelem, oth->data, sizeof(T) * (size_t)oth->nelem);       \
+                if (self->dup) {                                                                   \
+                        for (size_t i = 0; i < oth->nelem; i++) {                                  \
+                                self->data[self->nelem + i] = self->dup(oth->data[i]);             \
+                        }                                                                          \
+                } else {                                                                           \
+                        memcpy(self->data + self->nelem, oth->data,                                \
+                               sizeof(T) * (size_t)oth->nelem);                                    \
+                }                                                                                  \
                 self->nelem += oth->nelem;                                                         \
                 return 0;                                                                          \
         }
