@@ -1,7 +1,6 @@
 CFLAGS = -Wall -Wextra -Wpedantic -Werror -std=c99 -fPIC
 TFLAG = -fsanitize=address,undefined,leak -fno-omit-frame-pointer -g -O0
 RFLAG = -O3
-LDFLAGS = -shared -Wl,-soname,libcops.so.1
 
 TEST_FLAG =
 
@@ -10,26 +9,21 @@ TEST_d = test
 OBJ_d = obj
 BIN_d = bin
 
-SRCs = $(wildcard $(SRC_d)/*.c)
 TESTs = $(wildcard $(TEST_d)/*.c)
 T_OBJs = $(patsubst $(TEST_d)/%.c,$(OBJ_d)/%.o,$(TESTs))
 S_OBJs = $(patsubst $(SRC_d)/%.c,$(OBJ_d)/%.o,$(SRCs))
 
 TEST = $(BIN_d)/test
-LIB = $(BIN_d)/libcops.so
 
 .PHONY: all test install uninstall clean speed
-
-all: $(LIB)
-	@echo -e "[\e[36mcops\e[0m]: \e[32mdynamic library created!\e[0m"
-
-speed: TEST_FLAG = $(TFLAG)
-speed: $(TEST)
-	@echo -e "[\e[36mcops\e[0m]: \e[32mtest for speed!\e[0m"
 
 test: TEST_FLAG = $(TFLAG)
 test: $(TEST)
 	@echo -e "[\e[36mcops\e[0m]: \e[32mtest created!\e[0m"
+
+speed: TEST_FLAG = $(TFLAG)
+speed: $(TEST)
+	@echo -e "[\e[36mcops\e[0m]: \e[32mtest for speed!\e[0m"
 
 install:
 	@if [ "$$(id -u)" -ne 0 ]; then \
@@ -64,11 +58,6 @@ $(OBJ_d) $(BIN_d):
 $(TEST): $(T_OBJs) | $(BIN_d)
 	@echo -e "[\e[36mcops\e[0m]: \e[33mcreating "$@"\e[0m..."
 	@$(CC) $(CFLAGS) $(TEST_FLAG) $^ -o $@
-
-
-$(LIB): $(S_OBJs) | $(BIN_d)
-	@echo -e "[\e[36mcops\e[0m]: \e[33mcreating "$@"\e[0m..."
-	@$(CC) -shared $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 clean:
 	@echo -e "[\e[36mcops\e[0m]: \e[31mcleaning reference\e[0m..."
