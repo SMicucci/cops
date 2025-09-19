@@ -33,7 +33,7 @@ extern "C" {
                                                                                                    \
         static inline name *name##_new(int (*cmp)(K, K))                                           \
         {                                                                                          \
-                name *self = cops_default_allocator.alloc(sizeof(*self));                           \
+                name *self = cops_default_allocator.alloc(sizeof(*self));                          \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->cmp = cmp;                                                                   \
@@ -66,13 +66,13 @@ extern "C" {
                                                         p->left = NULL;                            \
                                                 if (p && p->right == n)                            \
                                                         p->right = NULL;                           \
-                                                cops_default_allocator.free(n);                     \
+                                                cops_default_allocator.free(n);                    \
                                                 n = p;                                             \
                                         }                                                          \
                                 }                                                                  \
                         }                                                                          \
                         self->root = NULL;                                                         \
-                        cops_default_allocator.free(self);                                          \
+                        cops_default_allocator.free(self);                                         \
                 }                                                                                  \
                 return NULL;                                                                       \
         }                                                                                          \
@@ -134,7 +134,7 @@ extern "C" {
                         return -1;                                                                 \
                 if (!self->cmp)                                                                    \
                         return -3; /* init node*/                                                  \
-                name##_node *e = (name##_node *)cops_default_allocator.alloc(sizeof(*e));           \
+                name##_node *e = (name##_node *)cops_default_allocator.alloc(sizeof(*e));          \
                 if (!e)                                                                            \
                         return -2;                                                                 \
                 *e = (name##_node){NULL, NULL, NULL, 1, key, val};                                 \
@@ -149,7 +149,7 @@ extern "C" {
                 while (1) {                                                                        \
                         int diff = self->cmp(key, n->key);                                         \
                         if (!diff) {                                                               \
-                                cops_default_allocator.free(e);                                     \
+                                cops_default_allocator.free(e);                                    \
                                 return -3;                                                         \
                         } else if (diff > 0) {                                                     \
                                 if (!n->right) {                                                   \
@@ -314,14 +314,14 @@ extern "C" {
                         } /* parent (n) children is only child*/                                   \
                         oc->parent = p;                                                            \
                         oc->isred = 0;                                                             \
-                        cops_default_allocator.free(n);                                             \
+                        cops_default_allocator.free(n);                                            \
                         self->nelem--;                                                             \
                         return 0;                                                                  \
                 } /* no children*/                                                                 \
                 if (!p) {                                                                          \
                         self->nelem--;                                                             \
                         self->root = NULL;                                                         \
-                        cops_default_allocator.free(n);                                             \
+                        cops_default_allocator.free(n);                                            \
                         return 0;                                                                  \
                 }                                                                                  \
                 name##_node *s = p->left == n ? p->right : p->left;                                \
@@ -331,7 +331,7 @@ extern "C" {
                 else                                                                               \
                         p->right = NULL;                                                           \
                 volatile int n_is_red = n->isred;                                                  \
-                cops_default_allocator.free(n);                                                     \
+                cops_default_allocator.free(n);                                                    \
                 n = NULL;                                                                          \
                 self->nelem--;                                                                     \
                 if (n_is_red)                                                                      \
