@@ -7,10 +7,6 @@
 #include <string.h>
 #include <time.h>
 
-#define X(name, T) __init_cops_arr(name, T)
-X(string, char)
-#undef X
-
 typedef struct user {
         long id;
         string *name;

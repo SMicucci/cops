@@ -5,7 +5,6 @@
 
 #define FORMATTER(name, T) __init_cops_arr(name, T)
 FORMATTER(intarr, int)
-FORMATTER(string, char)
 #undef FORMATTER
 
 void print_intarr(intarr *a);

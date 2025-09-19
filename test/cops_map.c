@@ -7,10 +7,6 @@
 #include <string.h>
 #include <time.h>
 
-#define X(name, T) __init_cops_arr(name, T)
-X(string, char)
-#undef X
-
 #define X(name, K, V) __init_cops_map(name, K, V)
 X(map, string *, double)
 X(fmap, long, long)
