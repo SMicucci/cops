@@ -144,27 +144,37 @@ int test_map(int type)
                 m1 = map_free(m1);
         }
 
-        printf("\n~~~~~~~~~~  " Yb B Pf "performance test" D " ~~~~~~~~~~\n");
-        for (int k = 2; k < 8; k++) {
+        printf("\n~~~~~~~~~~  " Yf B Pb "performance test" D " ~~~~~~~~~~\n");
+        for (int k = 0; k < 3; k++) {
                 printf("\n");
                 fmap *f = fmap_new(_fhash, _fcmp);
-                const int N = 1 << (18 + (k));
-                srand((unsigned int)time(NULL));
+                const int N = 1 << (20 + (k << 1));
+                const int M = 1000000;
+                char strval[28];
+                format_number(N, strval);
+                printf(" > (" Gf "%12s insert" D ")", strval);
                 clock_t s, e;
                 s = clock();
-                for (int i = 0; i < N; i++) {
-                        int val = rand() % 1000;
-                        fmap_add(f, (long)i, (long)val);
-                        if (rand() % 2)
-                                fmap_del(f, (long)i, NULL);
+                for (long i = 0; i < N; i++) {
+                        fmap_add(f, i, i);
                 }
                 e = clock();
                 double elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
                 double avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
-                char strval[28];
-                format_number(N, strval);
-                printf(" > (" Gf "%12s insert" D ") %.3f ms\n", strval, elapse);
+                printf(" %.3f ms\n", elapse);
                 printf(" > (        " Cf "avg" D "        ) %.6f \u03bcs\n", avg);
+                format_number(M, strval);
+                printf(" > (" Cf "%12s update" D ")", strval);
+                s = clock();
+                for (int i = 0; i < M; i++) {
+                        size_t pos = rand() % N;
+                        fmap_set(f, pos, i);
+                }
+                e = clock();
+                elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
+                avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)M;
+                printf(" %.3f ms\n", elapse);
+                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n", avg);
                 f = fmap_free(f);
         }
         printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
