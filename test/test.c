@@ -3,6 +3,7 @@
 
 extern int test_arr(int type);
 extern int test_vec(int type);
+extern int test_list(int type);
 extern int test_map(int type);
 extern int test_set(int type);
 extern int test_omap(int type);
@@ -30,6 +31,9 @@ int main(int argc, char *argv[])
                                 return 1;
                 } else if (!strcmp(argv[i], "vec")) {
                         if (test_vec(x))
+                                return 1;
+                } else if (!strcmp(argv[i], "list")) {
+                        if (test_list(x))
                                 return 1;
                 } else if (!strcmp(argv[i], "map")) {
                         if (test_map(x))
