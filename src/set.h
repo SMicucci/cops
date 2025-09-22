@@ -99,30 +99,30 @@ extern "C" {
         static inline int name##_set(name *self, T val)                                            \
         {                                                                                          \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 size_t pos, entry = self->hash(val) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
                 while (i < 0x40) {                                                                 \
                         pos = (entry + (i * i + i) / 2) % self->cap;                               \
                         name##_node *n = self->data + pos;                                         \
                         if (n->flag & 0x80) {                                                      \
-                                return -3;                                                         \
+                                return COPS_INVALID;                                               \
                         }                                                                          \
                         if (n->flag < 0x40 && !self->cmp(val, n->val)) {                           \
                                 if (self->free)                                                    \
                                         self->free(n->val);                                        \
                                 n->val = val;                                                      \
-                                return 0;                                                          \
+                                return COPS_OK;                                                    \
                         }                                                                          \
                         i++;                                                                       \
                 }                                                                                  \
-                return -2;                                                                         \
+                return COPS_INVALID;                                                               \
         }                                                                                          \
                                                                                                    \
         static inline int name##_add(name *self, T val)                                            \
         {                                                                                          \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (((100 * self->nelem) / self->cap) > 90) {                                      \
                         int res = 0;                                                               \
                         size_t cap = self->cap * 2;                                                \
@@ -130,7 +130,7 @@ extern "C" {
                         name##_node *data =                                                        \
                             (name##_node *)cops_default_allocator.alloc(sizeof(*data) * cap);      \
                         if (!data)                                                                 \
-                                return -2;                                                         \
+                                return COPS_MEMERR;                                                \
                         memset(data, 0, sizeof(*data) * cap);                                      \
                         for (size_t i = 0; i < cap; i++) {                                         \
                                 data[i].flag = 0x80;                                               \
@@ -156,10 +156,10 @@ extern "C" {
                         if (n->flag >= 0x40) {                                                     \
                                 *n = (name##_node){i, val};                                        \
                                 self->nelem++;                                                     \
-                                return 0;                                                          \
+                                return COPS_OK;                                                    \
                         }                                                                          \
                         if (n->flag < 0x40 && !self->cmp(val, n->val)) {                           \
-                                return -3;                                                         \
+                                return COPS_INVALID;                                               \
                         }                                                                          \
                         if (n->flag < i) {                                                         \
                                 name##_node next = *n;                                             \
@@ -170,13 +170,13 @@ extern "C" {
                         }                                                                          \
                         i++;                                                                       \
                 }                                                                                  \
-                return -2;                                                                         \
+                return COPS_INVALID;                                                               \
         }                                                                                          \
                                                                                                    \
         static inline int name##_has(name *self, T val)                                            \
         {                                                                                          \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 size_t pos, entry = self->hash(val) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
                 while (i < 0x40) {                                                                 \
@@ -188,36 +188,36 @@ extern "C" {
                                 return 1;                                                          \
                         i++;                                                                       \
                 }                                                                                  \
-                return 0;                                                                          \
+                return COPS_INVALID;                                                               \
         }                                                                                          \
                                                                                                    \
         static inline int name##_del(name *self, T val)                                            \
         {                                                                                          \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 size_t pos, entry = self->hash(val) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
                 while (i < 0x40) {                                                                 \
                         pos = (entry + (i * i + i) / 2) % self->cap;                               \
                         name##_node *n = self->data + pos;                                         \
                         if (n->flag & 0x80)                                                        \
-                                return -1;                                                         \
+                                return COPS_INVALID;                                               \
                         if (n->flag < 0x40 && !self->cmp(val, n->val)) {                           \
                                 n->flag = 0x40;                                                    \
                                 if (self->free)                                                    \
                                         self->free(n->val);                                        \
                                 self->nelem--;                                                     \
-                                return 0;                                                          \
+                                return COPS_OK;                                                    \
                         }                                                                          \
                         i++;                                                                       \
                 }                                                                                  \
-                return -3;                                                                         \
+                return COPS_INVALID;                                                               \
         }                                                                                          \
                                                                                                    \
         static inline int name##_get(name *self, T val, T *old)                                    \
         {                                                                                          \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 size_t pos, entry = self->hash(val) % self->cap;                                   \
                 uint8_t i = 0;                                                                     \
                 while (i < 0x40) {                                                                 \
@@ -226,21 +226,21 @@ extern "C" {
                         if (n->flag < 0x40 && !self->cmp(val, n->val)) {                           \
                                 if (old)                                                           \
                                         *old = n->val;                                             \
-                                return 0;                                                          \
+                                return COPS_OK;                                                    \
                         }                                                                          \
                         i++;                                                                       \
                 }                                                                                  \
-                return -3;                                                                         \
+                return COPS_INVALID;                                                               \
         }                                                                                          \
                                                                                                    \
         static inline int name##_import(name *self, name *oth)                                     \
         {                                                                                          \
                 if (self == oth)                                                                   \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (!self || !self->data || !self->hash || !self->cmp)                             \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (!oth || !oth->data || !oth->hash || !oth->cmp)                                 \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 uint32_t cap = self->cap;                                                          \
                 uint32_t len = self->nelem;                                                        \
                 for (size_t i = 0; i < oth->cap; i++) {                                            \
@@ -258,7 +258,7 @@ extern "C" {
                         name##_node *new =                                                         \
                             (name##_node *)cops_default_allocator.alloc(sizeof(*new) * cap);       \
                         if (!new)                                                                  \
-                                return -2;                                                         \
+                                return COPS_MEMERR;                                                \
                         memset(new, 0, sizeof(*new) * cap);                                        \
                         for (size_t i = 0; i < cap; i++) {                                         \
                                 new[i].flag = 0x80;                                                \
@@ -287,7 +287,7 @@ extern "C" {
                                         name##_set(self, n->val);                                  \
                         }                                                                          \
                 }                                                                                  \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }
 
 #define init_cops_set(T) __init_cops_set(cops_##T##_set, T)

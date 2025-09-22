@@ -62,7 +62,7 @@ extern "C" {
         static inline int name##_push(name *self, T val)                                           \
         {                                                                                          \
                 if (!self || !self->data)                                                          \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (self->nelem == (uint32_t)self->cap) {                                          \
                         if ((unsigned long)(2 * self->cap) > (SIZE_MAX / sizeof(T))) {             \
                                 return -2;                                                         \
@@ -71,71 +71,65 @@ extern "C" {
                         T *new = cops_default_allocator.realloc(old, sizeof(T) *                   \
                                                                          (size_t)(2 * self->cap)); \
                         if (!new)                                                                  \
-                                return -1;                                                         \
+                                return COPS_MEMERR;                                                \
                         memset(new + self->cap, 0, sizeof(T) * (size_t)self->cap);                 \
                         self->cap *= 2;                                                            \
                         self->data = new;                                                          \
                 }                                                                                  \
                 T *trg = self->data + self->nelem++;                                               \
                 memcpy(trg, &val, sizeof(T));                                                      \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }                                                                                          \
                                                                                                    \
         static inline int name##_pop(name *self, T *res)                                           \
         {                                                                                          \
-                if (!self || !self->data)                                                          \
-                        return -1;                                                                 \
-                if (!self->nelem)                                                                  \
-                        return -2;                                                                 \
+                if (!self || !self->data || !self->nelem)                                          \
+                        return COPS_INVALID;                                                       \
                 T *trg = self->data + --self->nelem;                                               \
                 if (res)                                                                           \
                         memcpy(res, trg, sizeof(T));                                               \
                 if (self->free)                                                                    \
                         self->free(*trg);                                                          \
                 memset(trg, 0, sizeof(T));                                                         \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }                                                                                          \
                                                                                                    \
         static inline int name##_set(name *self, uint32_t pos, T val)                              \
         {                                                                                          \
-                if (!self || !self->data)                                                          \
-                        return -1;                                                                 \
+                if (!self || !self->data || pos > self->nelem)                                     \
+                        return COPS_INVALID;                                                       \
                 if (pos == self->nelem)                                                            \
                         return name##_push(self, val);                                             \
-                if (pos > self->nelem)                                                             \
-                        return -2;                                                                 \
                 T *trg = self->data + pos;                                                         \
                 if (self->free)                                                                    \
                         self->free(*trg);                                                          \
                 *trg = val;                                                                        \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }                                                                                          \
                                                                                                    \
         static inline int name##_get(name *self, uint32_t pos, T *res)                             \
         {                                                                                          \
-                if (!self || !self->data)                                                          \
-                        return -1;                                                                 \
-                if (pos >= self->nelem)                                                            \
-                        return -2;                                                                 \
+                if (!self || !self->data || pos >= self->nelem)                                    \
+                        return COPS_INVALID;                                                       \
                 T *trg = self->data + pos;                                                         \
                 if (res)                                                                           \
                         *res = *trg;                                                               \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }                                                                                          \
                                                                                                    \
         static inline int name##_import(name *self, const name *oth)                               \
         {                                                                                          \
                 if (!self || !self->data || !oth || !oth->data)                                    \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (self->nelem > UINT32_MAX - oth->nelem)                                         \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 uint32_t new_cap = self->cap;                                                      \
                 while (self->nelem + oth->nelem > new_cap)                                         \
                         new_cap *= 2;                                                              \
                 if (new_cap != self->cap) {                                                        \
                         T *new = cops_default_allocator.realloc(self->data, new_cap);              \
                         if (!new)                                                                  \
-                                return -1;                                                         \
+                                return COPS_MEMERR;                                                \
                         memset(new + self->cap, 0, (size_t)(new_cap - self->cap) * sizeof(T));     \
                         self->data = new;                                                          \
                         self->cap = new_cap;                                                       \
@@ -149,7 +143,7 @@ extern "C" {
                                sizeof(T) * (size_t)oth->nelem);                                    \
                 }                                                                                  \
                 self->nelem += oth->nelem;                                                         \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }
 
 #define init_cops_vec(T) __init_cops_vec(cops_##T##_vec, T)

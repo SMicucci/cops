@@ -80,10 +80,10 @@ extern "C" {
         static inline int name##_node_rotate_right(name *self, name##_node *p)                     \
         {                                                                                          \
                 if (!self || !p)                                                                   \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 name##_node *x = p->left, *g = p->parent;                                          \
                 if (!x)                                                                            \
-                        return -1; /* link parent and child*/                                      \
+                        return COPS_INVALID; /* link parent and child*/                            \
                 x->parent = g;                                                                     \
                 if (!g)                                                                            \
                         self->root = x;                                                            \
@@ -98,17 +98,17 @@ extern "C" {
                 /* link parent and child*/                                                         \
                 p->parent = x;                                                                     \
                 x->right = p;                                                                      \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }                                                                                          \
                                                                                                    \
         /* rotate node to became left child of his right child*/                                   \
         static inline int name##_node_rotate_left(name *self, name##_node *p)                      \
         {                                                                                          \
                 if (!self || !p)                                                                   \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 name##_node *x = p->right, *g = p->parent;                                         \
                 if (!x)                                                                            \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 /* link parent and child*/                                                         \
                 x->parent = g;                                                                     \
                 if (!g)                                                                            \
@@ -124,32 +124,32 @@ extern "C" {
                 /* link parent and child*/                                                         \
                 p->parent = x;                                                                     \
                 x->left = p;                                                                       \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }                                                                                          \
                                                                                                    \
         static inline int name##_add(name *self, T val)                                            \
         {                                                                                          \
                 if (!self)                                                                         \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (!self->cmp)                                                                    \
-                        return -3; /* init node*/                                                  \
+                        return COPS_INVALID; /* init node*/                                        \
                 name##_node *e = (name##_node *)cops_default_allocator.alloc(sizeof(*e));          \
                 if (!e)                                                                            \
-                        return -2;                                                                 \
+                        return COPS_MEMERR;                                                        \
                 *e = (name##_node){NULL, NULL, NULL, 1, val};                                      \
                 /* insert*/                                                                        \
                 if (!self->root) {                                                                 \
                         self->root = e;                                                            \
                         e->isred = 0;                                                              \
                         self->nelem++;                                                             \
-                        return 0;                                                                  \
+                        return COPS_OK;                                                            \
                 }                                                                                  \
                 name##_node *n = self->root;                                                       \
                 while (1) {                                                                        \
                         int diff = self->cmp(key, n->key);                                         \
                         if (!diff) {                                                               \
                                 cops_default_allocator.free(e);                                    \
-                                return -3;                                                         \
+                                return COPS_INVALID;                                               \
                         } else if (diff > 0) {                                                     \
                                 if (!n->right) {                                                   \
                                         e->parent = n;                                             \
@@ -219,34 +219,34 @@ extern "C" {
                 }                                                                                  \
                 /* repaint root*/                                                                  \
                 self->root->isred = 0;                                                             \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }                                                                                          \
                                                                                                    \
         static inline int name##_has(name *self, T val)                                            \
         {                                                                                          \
                 if (!self)                                                                         \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (!self->cmp)                                                                    \
-                        return -3;                                                                 \
+                        return COPS_INVALID;                                                       \
                 name##_node *n = self->root;                                                       \
                 while (n) {                                                                        \
                         int cmp = self->cmp(val, n->val);                                          \
                         if (!cmp)                                                                  \
-                                return 0;                                                          \
+                                return COPS_OK;                                                    \
                         else if (cmp > 0)                                                          \
                                 n = n->right;                                                      \
                         else                                                                       \
                                 n = n->left;                                                       \
                 }                                                                                  \
-                return -3;                                                                         \
+                return COPS_INVALID;                                                               \
         }                                                                                          \
                                                                                                    \
         static inline int name##_del(name *self, T *val)                                           \
         {                                                                                          \
                 if (!self)                                                                         \
-                        return -1;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (!self->cmp)                                                                    \
-                        return -3; /* valid tree*/                                                 \
+                        return COPS_INVALID; /* valid tree*/                                       \
                 name##_node *x = self->root;                                                       \
                 while (x) {                                                                        \
                         int cmp = self->cmp(*val, x->val);                                         \
@@ -258,7 +258,7 @@ extern "C" {
                                 x = x->left;                                                       \
                 }                                                                                  \
                 if (!x)                                                                            \
-                        return -3;                                                                 \
+                        return COPS_INVALID;                                                       \
                 if (val)                                                                           \
                         *val = x->val;     /* target found*/                                       \
                 name##_node *n = x;        /* *n -> double black or target*/                       \
@@ -276,7 +276,7 @@ extern "C" {
                 if (n->left || n->right) {                                                         \
                         name##_node *oc = n->left ? n->left : n->right; /* *oc -> only child*/     \
                         if (!oc->isred) {                                                          \
-                                return -3;                                                         \
+                                return COPS_ABORT;                                                 \
                         } else if (!p) {                                                           \
                                 self->root = oc;                                                   \
                         } else if (p->left == n) {                                                 \
@@ -288,13 +288,13 @@ extern "C" {
                         oc->isred = 0;                                                             \
                         cops_default_allocator.free(n);                                            \
                         self->nelem--;                                                             \
-                        return 0;                                                                  \
+                        return COPS_OK;                                                            \
                 } /* no children*/                                                                 \
                 if (!p) {                                                                          \
                         self->nelem--;                                                             \
                         self->root = NULL;                                                         \
                         cops_default_allocator.free(n);                                            \
-                        return 0;                                                                  \
+                        return COPS_OK;                                                            \
                 }                                                                                  \
                 name##_node *s = p->left == n ? p->right : p->left;                                \
                 name##_node *cn, *dn;                                                              \
@@ -307,7 +307,7 @@ extern "C" {
                 n = NULL;                                                                          \
                 self->nelem--;                                                                     \
                 if (n_is_red)                                                                      \
-                        return 0; /* black node*/                                                  \
+                        return COPS_OK; /* black node*/                                            \
                 while (1) {                                                                        \
                         if (n)                                                                     \
                                 p = n->parent;                                                     \
@@ -359,7 +359,7 @@ extern "C" {
                         s->isred = 1;                                                              \
                         n = p;                                                                     \
                 }                                                                                  \
-                return 0;                                                                          \
+                return COPS_OK;                                                                    \
         }
 
 #define init_cops_oset(T) __init_cops_oset(cops_##K##_##V##_oset, K, V)

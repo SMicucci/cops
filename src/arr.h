@@ -43,7 +43,7 @@ extern "C" {
 #define init_cops_arr(T) __init_cops_arr(cops_##T##_arr, T)
 
 // string
-__init_cops_arr(string, char)
+__init_cops_arr(cops_string, char)
 
 #ifdef __cplusplus
 }
