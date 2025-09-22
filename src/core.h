@@ -9,9 +9,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifdef __cplusplus
-}
-#endif
 
 #include <stddef.h>
 #include <stdint.h>
@@ -19,10 +16,15 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 
+#define COPS_OK ((int)0)
+#define COPS_INVALID ((int)-1)
+#define COPS_ABORT ((int)-2)
+#define COPS_MEMERR ((int)-3)
+
 /**
  * basic string hash function
  */
-static inline size_t djb2(char *s)
+static inline size_t djb2(const char *s)
 {
         size_t hash = 5381;
         int c;
@@ -44,7 +46,7 @@ static inline size_t longhash(unsigned long l)
         return x;
 }
 
-static inline void *cops_alloc(size_t size) { return calloc(size, 1); }
+static inline void *cops_alloc(size_t size) { return calloc(1, size); }
 
 /**
  * rewritable allocation in macros:
@@ -62,6 +64,12 @@ typedef struct cops_allocator {
 // default allocator used in all the macros
 static const cops_allocator cops_default_allocator = {cops_alloc, realloc, free};
 
+#ifdef __init_cops_list
+#error "'__init_cops_list' is a reserved word for cops library"
+#endif
+#ifdef init_cops_list
+#error "'init_cops_list' is a reserved word for cops library"
+#endif
 #ifdef __init_cops_arr
 #error "'__init_cops_arr' is a reserved word for cops library"
 #endif
@@ -99,4 +107,7 @@ static const cops_allocator cops_default_allocator = {cops_alloc, realloc, free}
 #error "'init_cops_oset' is a reserved word for cops library"
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* end of include guard: COPS_CORE_H */

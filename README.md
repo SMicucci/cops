@@ -77,6 +77,36 @@ Classic vector, start with a default size to avoid primary reallocation, not pro
 If you want to sort it just use `qsort(vec->data, vec->nelem, sizeof(vec->data[0]), my_cmp_func)`.  
 No need to reinvent the wheel (for ordered set there are other useful object)
 
+# List
+
+```c
+init_cops_list(T)
+```
+
+Double linked list
+
+**Structure**:  
+- `<name>_node` linked list node structure
+    - `next` next node
+    - `prev` previous node
+    - `val` value
+- `nelem` number of nodes
+- `rc` reference counter (smart pointer)
+- `head`  start of the list
+- `tail` end of the list
+- `free` function pointer to free an element (nullable)
+
+**API**:  
+- push_front = add new head
+- push_back = add new tail
+- pop_front = remoev head
+- pop_back = remove tail
+- add_next = add next to a node
+- add_prev = add prev to a node
+- del = delete node
+
+minimal utility to handle queue without circular array and without priority
+
 ## Map
 
 ```c

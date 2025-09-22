@@ -34,9 +34,7 @@ extern "C" {
         }                                                                                          \
         static inline name *name##_free(name *self)                                                \
         {                                                                                          \
-                if (!self)                                                                         \
-                        return NULL;                                                               \
-                if (self->rc > 0 && !(--self->rc)) {                                               \
+                if (self && self->rc > 0 && !(--self->rc)) {                                       \
                         cops_default_allocator.free(self);                                         \
                 }                                                                                  \
                 return NULL;                                                                       \
