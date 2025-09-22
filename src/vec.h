@@ -19,7 +19,7 @@ extern "C" {
                                                                                                    \
         static inline name *name##_new()                                                           \
         {                                                                                          \
-                name *self = cops_default_allocator.alloc(sizeof(name));                           \
+                name *self = (name *)cops_default_allocator.alloc(sizeof(*self));                  \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->rc = 1;                                                                      \
@@ -30,7 +30,8 @@ extern "C" {
                         cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \
                 }                                                                                  \
-                self->data = cops_default_allocator.alloc(sizeof(T) * (size_t)self->cap);          \
+                self->data =                                                                       \
+                    (T *)cops_default_allocator.alloc(sizeof(*self->data) * (size_t)self->cap);    \
                 if (!self->data) {                                                                 \
                         cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \

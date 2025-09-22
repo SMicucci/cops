@@ -33,7 +33,7 @@ extern "C" {
                                                                                                    \
         static inline name *name##_new(int (*cmp)(K, K))                                           \
         {                                                                                          \
-                name *self = cops_default_allocator.alloc(sizeof(*self));                          \
+                name *self = (name *)cops_default_allocator.alloc(sizeof(*self));                  \
                 if (!self)                                                                         \
                         return NULL;                                                               \
                 self->cmp = cmp;                                                                   \

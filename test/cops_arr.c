@@ -3,9 +3,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#define FORMATTER(name, T) __init_cops_arr(name, T)
-FORMATTER(intarr, int)
-#undef FORMATTER
+#define X(name, T) __init_cops_arr(name, T)
+X(intarr, int)
+X(string, char *)
+#undef X
 
 void print_intarr(intarr *a);
 void print_string(string *a);
@@ -54,8 +55,8 @@ int test_arr(int type)
 
                 printf("\n - create new char array:\n");
                 string *c_arr = string_new(20);
-                strncpy(c_arr->data, "a bad cafe fr fr", c_arr->len - 1);
-                c_arr->data[c_arr->len - 1] = '\0';
+                strncpy((char *)c_arr->data, "a bad cafe fr fr", c_arr->len - 1);
+                *c_arr->data[c_arr->len - 1] = '\0';
                 if (!c_arr) {
                         printf(" > " Rf "failed allocation" D "!\n");
                         return 1;

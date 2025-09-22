@@ -61,7 +61,7 @@ extern "C" {
                 self->cap = 16;                                                                    \
                 self->rc = 1;                                                                      \
                 self->data =                                                                       \
-                    (name##_node *)cops_default_allocator.alloc(sizeof(name##_node) * self->cap);  \
+                    (name##_node *)cops_default_allocator.alloc(sizeof(*self->data) * self->cap);  \
                 if (!self->data) {                                                                 \
                         cops_default_allocator.free(self);                                         \
                         return NULL;                                                               \
