@@ -12,11 +12,11 @@ struct test {
         unsigned char age;
 };
 
-#define FORMATTER(name, T) __init_cops_vec(name, T)
-FORMATTER(vint, int)
-FORMATTER(vtest, struct test)
-FORMATTER(str_vec, char *)
-#undef FORMATTER
+#define X(name, T) __init_cops_vec(name, T)
+X(vint, int)
+X(vtest, struct test)
+X(str_vec, char *)
+#undef X
 
 void print_vtest(vtest *v);
 void print_vint(vint *v);
@@ -27,14 +27,16 @@ static inline void str_free(char *mem);
 int test_vec(int type)
 {
         char *names[] = {
-            "apple",  "book",   "cat",    "dog",    "elephant", "flower",   "grape",    "house",
-            "island", "jungle", "kite",   "lemon",  "mountain", "notebook", "ocean",    "piano",
-            "queen",  "river",  "sun",    "tree",   "cloud",    "stone",    "forest",   "valley",
-            "desert", "hill",   "star",   "planet", "comet",    "galaxy",   "universe", "light",
-            "shadow", "flame",  "storm",  "rain",   "snow",     "wind",     "sand",     "lake",
-            "bridge", "tower",  "castle", "garden", "field",    "path",     "road",     "harbor",
-            "canyon", "meadow", "cliff",  "spring", "cave",     "harvest",  "dawn",     "ember",
-            "peak"};
+            "apple",    "book",     "cat",    "dog",    "elephant", "flower",
+            "grape",    "house",    "island", "jungle", "kite",     "lemon",
+            "mountain", "notebook", "ocean",  "piano",  "queen",    "river",
+            "sun",      "tree",     "cloud",  "stone",  "forest",   "valley",
+            "desert",   "hill",     "star",   "planet", "comet",    "galaxy",
+            "universe", "light",    "shadow", "flame",  "storm",    "rain",
+            "snow",     "wind",     "sand",   "lake",   "bridge",   "tower",
+            "castle",   "garden",   "field",  "path",   "road",     "harbor",
+            "canyon",   "meadow",   "cliff",  "spring", "cave",     "harvest",
+            "dawn",     "ember",    "peak"};
         printf("~~~~~~~~~~   test cops_vec   ~~~~~~~~~~\n");
         if (type != 1) {
                 printf("\n - create new test vector\n");
@@ -51,8 +53,9 @@ int test_vec(int type)
                 print_vtest(v2);
                 printf("\n - insert some element\n");
                 for (int i = 0; i < 14; i++) {
-                        if (vtest_push(
-                                v2, (struct test){(30 + (i * i + i) / 2), names[i], 15 + i / 2})) {
+                        if (vtest_push(v2,
+                                       (struct test){(30 + (i * i + i) / 2),
+                                                     names[i], 15 + i / 2})) {
                                 printf("failed insertion!\n");
                                 return 1;
                         }
@@ -118,9 +121,11 @@ int test_vec(int type)
                 }
                 e = clock();
                 double elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
-                double avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
+                double avg =
+                    (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (      " Cf "avg add" D "      ) %.6f \u03bcs\n", avg);
+                printf(" > (      " Cf "avg add" D "      ) %.6f \u03bcs\n",
+                       avg);
                 format_number(M, strval);
                 printf(" > (" Cf "%12s update" D ")", strval);
                 s = clock();
@@ -132,7 +137,8 @@ int test_vec(int type)
                 elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
                 avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)M;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n", avg);
+                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n",
+                       avg);
                 v = vint_free(v);
         }
         printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
@@ -142,23 +148,25 @@ int test_vec(int type)
 void print_vtest(vtest *v)
 {
         if (!v) {
-                printf(Bf "vector" Yf "<" Cf "struct test" Yf ">" D "[" B "0" D "] (ref: " Pf "0" D
-                          ", " Gf "%p" D " )\n",
+                printf(Bf "vector" Yf "<" Cf "struct test" Yf ">" D "[" B "0" D
+                          "] (ref: " Pf "0" D ", " Gf "%p" D " )\n",
                        (void *)v);
                 return;
         }
-        printf(Bf "vector" Yf "<" Cf "struct test" Yf ">" D "[" Rf "%2d" D "] (ref:" Pf "%2d" D
-                  ", " Bf "%p" D " )\n",
+        printf(Bf "vector" Yf "<" Cf "struct test" Yf ">" D "[" Rf "%2d" D
+                  "] (ref:" Pf "%2d" D ", " Bf "%p" D " )\n",
                v->nelem, v->rc, (void *)v);
         for (size_t i = 0; i < (size_t)(v->cap); i++) {
                 struct test d = v->data[i];
                 if (i < (size_t)v->nelem)
-                        printf(" [" Gf "%02d" D "] {" Cf "id" D ": " Bf B "%ld" D ", " Cf "name" D
-                               ": " B Gf "\"%s\"" D ", " Cf "age" D ": " Bf B "%d" D "}",
+                        printf(" [" Gf "%02d" D "] {" Cf "id" D ": " Bf B
+                               "%ld" D ", " Cf "name" D ": " B Gf "\"%s\"" D
+                               ", " Cf "age" D ": " Bf B "%d" D "}",
                                (int)i, d.id, d.name, d.age);
                 else
-                        printf(" [" Pf "%02d" D "] {" Cf "id" D ": " Rf "0" D ", " Cf "name" D
-                               ": " Rf "(nil)" D ", " Cf "age" D ": " Rf "0" D "}",
+                        printf(" [" Pf "%02d" D "] {" Cf "id" D ": " Rf "0" D
+                               ", " Cf "name" D ": " Rf "(nil)" D ", " Cf
+                               "age" D ": " Rf "0" D "}",
                                (int)i);
                 if (i != (size_t)(v->cap - 1))
                         printf(",");
@@ -169,20 +177,22 @@ void print_vtest(vtest *v)
 void print_str_vec(str_vec *v)
 {
         if (!v) {
-                printf(Bf "vector" Yf "<" Cf "char*" Yf ">" D "[" B "0" D "] (ref: " Pf "0" D
-                          ", " Gf "%p" D " )\n",
+                printf(Bf "vector" Yf "<" Cf "char*" Yf ">" D "[" B "0" D
+                          "] (ref: " Pf "0" D ", " Gf "%p" D " )\n",
                        (void *)v);
                 return;
         }
-        printf(Bf "vector" Yf "<" Cf "char*" Yf ">" D "[" Rf "%2d" D "] (ref:" Pf "%2d" D ", " Bf
-                  "%p" D " )\n",
+        printf(Bf "vector" Yf "<" Cf "char*" Yf ">" D "[" Rf "%2d" D
+                  "] (ref:" Pf "%2d" D ", " Bf "%p" D " )\n",
                v->nelem, v->rc, (void *)v);
         for (size_t i = 0; i < (size_t)(v->cap); i++) {
                 char *d = v->data[i];
                 if (i < (size_t)v->nelem)
-                        printf(" [" Bf "%02d" D "]: '" Gf B "%s" D "'", (int)i, d);
+                        printf(" [" Bf "%02d" D "]: '" Gf B "%s" D "'", (int)i,
+                               d);
                 else
-                        printf(" [" Pf "%02d" D "]: " Cf B "%p" D, (int)i, (void *)d);
+                        printf(" [" Pf "%02d" D "]: " Cf B "%p" D, (int)i,
+                               (void *)d);
                 if (i != (size_t)(v->cap - 1))
                         printf(",");
                 printf("\n");
@@ -196,13 +206,13 @@ void print_str_vec(str_vec *v)
 void print_vint(vint *v)
 {
         if (!v) {
-                printf(Bf "vector" Yf "<" Cf "int" Yf ">" D "[" B "0" D "] (ref: " Pf "0" D ", " Gf
-                          "%p" D " )\n",
+                printf(Bf "vector" Yf "<" Cf "int" Yf ">" D "[" B "0" D
+                          "] (ref: " Pf "0" D ", " Gf "%p" D " )\n",
                        (void *)v);
                 return;
         }
-        printf(Bf "vector" Yf "<" Cf "struct test" Yf ">" D "[" Rf "%2d" D "] (ref:" Pf "%2d" D
-                  ", " Bf "%p" D " )\n",
+        printf(Bf "vector" Yf "<" Cf "struct test" Yf ">" D "[" Rf "%2d" D
+                  "] (ref:" Pf "%2d" D ", " Bf "%p" D " )\n",
                v->nelem, v->rc, (void *)v);
         for (size_t i = 0; i < (size_t)(v->cap); i++) {
                 int d = v->data[i];

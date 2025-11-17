@@ -52,17 +52,15 @@ static inline void *cops_alloc(size_t size) { return calloc(1, size); }
  * rewritable allocation in macros:
  *
  * - alloc:   zeroed new memory slot
- * - realloc: extend or port to new block
  * - free:    release memory
  */
 typedef struct cops_allocator {
         void *(*alloc)(size_t);
-        void *(*realloc)(void *, size_t);
         void (*free)(void *);
 } cops_allocator;
 
 // default allocator used in all the macros
-static const cops_allocator cops_default_allocator = {cops_alloc, realloc, free};
+static const cops_allocator cops_default_allocator = {cops_alloc, free};
 
 #ifdef __init_cops_list
 #error "'__init_cops_list' is a reserved word for cops library"

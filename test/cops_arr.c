@@ -5,7 +5,7 @@
 
 #define X(name, T) __init_cops_arr(name, T)
 X(intarr, int)
-X(string, char *)
+X(string, char)
 #undef X
 
 void print_intarr(intarr *a);
@@ -55,8 +55,9 @@ int test_arr(int type)
 
                 printf("\n - create new char array:\n");
                 string *c_arr = string_new(20);
-                strncpy((char *)c_arr->data, "a bad cafe fr fr", c_arr->len - 1);
-                *c_arr->data[c_arr->len - 1] = '\0';
+                strncpy((char *)c_arr->data, "a bad cafe fr fr",
+                        c_arr->len - 1);
+                c_arr->data[c_arr->len - 1] = '\0';
                 if (!c_arr) {
                         printf(" > " Rf "failed allocation" D "!\n");
                         return 1;
@@ -99,10 +100,12 @@ int test_arr(int type)
 void print_intarr(intarr *a)
 {
         if (!a) {
-                printf(" > " B "(" Gf "%p" D B " ref:" Yf "  0" D B ")" D "\n", (void *)a);
+                printf(" > " B "(" Gf "%p" D B " ref:" Yf "  0" D B ")" D "\n",
+                       (void *)a);
                 return;
         }
-        printf(" > " B "(" Bf "%p" D B " ref:" Rf "%3d" D B ")" D "[" Yf "%3d" D "]:\n\t{",
+        printf(" > " B "(" Bf "%p" D B " ref:" Rf "%3d" D B ")" D "[" Yf "%3d" D
+               "]:\n\t{",
                (void *)a, a->rc, a->len);
         for (size_t i = 0; i < a->len; i++) {
                 printf(Gf I "%d" D, a->data[i]);
@@ -115,10 +118,12 @@ void print_intarr(intarr *a)
 void print_string(string *a)
 {
         if (!a) {
-                printf(" > " B "(" Gf "%p" D B " ref:" Yf "  0" D B ")" D "\n", (void *)a);
+                printf(" > " B "(" Gf "%p" D B " ref:" Yf "  0" D B ")" D "\n",
+                       (void *)a);
                 return;
         }
-        printf(" > " B "(" Bf "%p" D B " ref:" Rf "%3d" D B ")" D "[" Yf "%3d" D "]:\n\t{",
+        printf(" > " B "(" Bf "%p" D B " ref:" Rf "%3d" D B ")" D "[" Yf "%3d" D
+               "]:\n\t{",
                (void *)a, a->rc, a->len);
         for (size_t i = 0; i < a->len; i++) {
                 if (a->data[i] >= ' ' && a->data[i] <= '~')

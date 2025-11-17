@@ -7,22 +7,38 @@
 #include <string.h>
 #include <time.h>
 
+#define X(name, T) __init_cops_arr(name, T)
+X(string, char)
+#undef X
+
 typedef struct user {
         long id;
         string *name;
 } user_t;
 
-static inline size_t _user_hash(user_t u) { return longhash((unsigned long)u.id); }
-static inline int _user_cmp(user_t u1, user_t u2) { return (u1.id > u2.id) - (u1.id < u2.id); }
+static inline size_t _user_hash(user_t u)
+{
+        return longhash((unsigned long)u.id);
+}
+static inline int _user_cmp(user_t u1, user_t u2)
+{
+        return (u1.id > u2.id) - (u1.id < u2.id);
+}
 static inline void _user_free(user_t u) { string_free(u.name); }
-static inline user_t _user_dup(user_t u) { return (user_t){u.id, string_dup(u.name)}; }
+static inline user_t _user_dup(user_t u)
+{
+        return (user_t){u.id, string_dup(u.name)};
+}
 
 #define X(name, T) __init_cops_set(name, T)
 X(set, user_t)
 X(fast_set, long)
 #undef X
 
-static inline int _cmp(string *s1, string *s2) { return strcmp(s1->data, s2->data); }
+static inline int _cmp(string *s1, string *s2)
+{
+        return strcmp(s1->data, s2->data);
+}
 static inline size_t _hash(string *s) { return djb2(s->data); }
 
 static inline int _fcmp(long l1, long l2) { return (l1 > l2) - (l1 < l2); }
@@ -34,17 +50,20 @@ void print_set(set *s);
 
 int test_set(int type)
 {
-        char *names[] = {"apple",    "book",     "cat",     "dog",       "elephant", "flower",
-                         "grape",    "house",    "island",  "jungle",    "kite",     "lemon",
-                         "mountain", "notebook", "ocean",   "piano",     "queen",    "river",
-                         "sun",      "tree",     "cloud",   "stone",     "forest",   "valley",
-                         "desert",   "hill",     "star",    "planet",    "comet",    "galaxy",
-                         "universe", "light",    "shadow",  "flame",     "storm",    "rain",
-                         "snow",     "wind",     "sand",    "lake",      "bridge",   "tower",
-                         "castle",   "garden",   "field",   "path",      "road",     "harbor",
-                         "canyon",   "meadow",   "cliff",   "spring",    "cave",     "harvest",
-                         "dawn",     "ember",    "peak",    "riverbank", "mirror",   "crown",
-                         "torch",    "temple",   "lantern", "village"};
+        char *names[] = {
+            "apple",    "book",   "cat",       "dog",      "elephant",
+            "flower",   "grape",  "house",     "island",   "jungle",
+            "kite",     "lemon",  "mountain",  "notebook", "ocean",
+            "piano",    "queen",  "river",     "sun",      "tree",
+            "cloud",    "stone",  "forest",    "valley",   "desert",
+            "hill",     "star",   "planet",    "comet",    "galaxy",
+            "universe", "light",  "shadow",    "flame",    "storm",
+            "rain",     "snow",   "wind",      "sand",     "lake",
+            "bridge",   "tower",  "castle",    "garden",   "field",
+            "path",     "road",   "harbor",    "canyon",   "meadow",
+            "cliff",    "spring", "cave",      "harvest",  "dawn",
+            "ember",    "peak",   "riverbank", "mirror",   "crown",
+            "torch",    "temple", "lantern",   "village"};
 
         printf("~~~~~~~~~~   test cops_set   ~~~~~~~~~~\n");
         if (type != 1) {
@@ -100,8 +119,9 @@ int test_set(int type)
                                 user_t u;
                                 printf("\"" Gf "%s" D "\":", t);
                                 set_get(m, s, &u);
-                                printf(Bf "{id:" Bf B "%02ld" D " name:'" B Gf "%s" D "'}", u.id,
-                                       u.name->data);
+                                printf(Bf "{id:" Bf B "%02ld" D " name:'" B Gf
+                                          "%s" D "'}",
+                                       u.id, u.name->data);
                                 set_set(m, s);
                                 if (i != (N / 2) - 1)
                                         printf(", ");
@@ -127,7 +147,8 @@ int test_set(int type)
                         s.id = i;
                         strcpy(s.name->data, t);
                         if (set_add(m1, s)) {
-                                printf("   (%02ld, '%s' exist yet!)\n", s.id, s.name->data);
+                                printf("   (%02ld, '%s' exist yet!)\n", s.id,
+                                       s.name->data);
                                 s.name = string_free(s.name);
                         }
                 }
@@ -139,7 +160,8 @@ int test_set(int type)
                         s.id = i;
                         strcpy(s.name->data, t);
                         if (set_add(m2, s)) {
-                                printf("   (%02ld, '%s' exist yet!)\n", s.id, s.name->data);
+                                printf("   (%02ld, '%s' exist yet!)\n", s.id,
+                                       s.name->data);
                                 s.name = string_free(s.name);
                         }
                 }
@@ -168,9 +190,11 @@ int test_set(int type)
                 }
                 e = clock();
                 double elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
-                double avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
+                double avg =
+                    (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (        " Cf "avg" D "        ) %.6f \u03bcs\n", avg);
+                printf(" > (        " Cf "avg" D "        ) %.6f \u03bcs\n",
+                       avg);
                 format_number(M, strval);
                 printf(" > (" Cf "%12s update" D ")", strval);
                 s = clock();
@@ -182,7 +206,8 @@ int test_set(int type)
                 elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
                 avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)M;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n", avg);
+                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n",
+                       avg);
                 f = fast_set_free(f);
         }
         printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
@@ -192,23 +217,25 @@ int test_set(int type)
 void print_set(set *s)
 {
         if (!s) {
-                printf(Cf "set" Yf "<" Bf "double" Yf ">" D " [" Rf " 0" D "/" Rf " 0" D "] (" B
-                          "refcount: " Rf "0" D ")\n");
+                printf(Cf "set" Yf "<" Bf "double" Yf ">" D " [" Rf " 0" D
+                          "/" Rf " 0" D "] (" B "refcount: " Rf "0" D ")\n");
                 return;
         }
-        printf(Cf "set" Yf "<" Bf "double" Yf ">" D " [" Gf "%2d" D "/" Gf "%2d" D "] (" B
-                  "refcount: " Pf "%d" D ")\n",
+        printf(Cf "set" Yf "<" Bf "double" Yf ">" D " [" Gf "%2d" D "/" Gf
+                  "%2d" D "] (" B "refcount: " Pf "%d" D ")\n",
                s->nelem, s->cap, s->rc);
         for (size_t i = 0; i < s->cap; i++) {
                 set_node d = s->data[i];
                 if (d.flag >= 0x40) {
-                        printf(" [" Rf "%2ld" D "]: " Yf "0x%02x" D " " Yf "(nil)" D " " Rf "0.0" D
-                               "\n",
+                        printf(" [" Rf "%2ld" D "]: " Yf "0x%02x" D " " Yf
+                               "(nil)" D " " Rf "0.0" D "\n",
                                i, d.flag);
                 } else {
-                        printf(" [" Bf "%2ld" D "]: " Cf "0x%02x" D " {id:" Bf B "%02ld" D
-                               " name:'" Gf B "%s" D "'(rc:" I Yf "%d" D ")}\n",
-                               i, d.flag, d.val.id, d.val.name->data, d.val.name->rc);
+                        printf(" [" Bf "%2ld" D "]: " Cf "0x%02x" D " {id:" Bf B
+                               "%02ld" D " name:'" Gf B "%s" D "'(rc:" I Yf
+                               "%d" D ")}\n",
+                               i, d.flag, d.val.id, d.val.name->data,
+                               d.val.name->rc);
                 }
         }
 }

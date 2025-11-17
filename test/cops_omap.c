@@ -7,12 +7,19 @@
 #include <string.h>
 #include <time.h>
 
+#define X(name, T) __init_cops_arr(name, T)
+X(string, char)
+#undef X
+
 #define X(name, K, V) __init_cops_omap(name, K, V)
 X(map, string *, double)
 X(f_omap, long, long)
 #undef X
 
-static inline int _cmp(string *s1, string *s2) { return strcmp(s1->data, s2->data); }
+static inline int _cmp(string *s1, string *s2)
+{
+        return strcmp(s1->data, s2->data);
+}
 static inline void _free(string *s) { string_free(s); }
 
 static inline int _fcmp(long l1, long l2) { return (l1 > l2) - (l1 < l2); }
@@ -21,17 +28,21 @@ void print_omap(map *m);
 
 int test_omap(int type)
 {
-        // char *names[] = {"apple",    "book",     "cat",     "dog",       "elephant", "flower",
-        //                  "grape",    "house",    "island",  "jungle",    "kite",     "lemon",
-        //                  "mountain", "notebook", "ocean",   "piano",     "queen",    "river",
-        //                  "sun",      "tree",     "cloud",   "stone",     "forest",   "valley",
-        //                  "desert",   "hill",     "star",    "planet",    "comet",    "galaxy",
-        //                  "universe", "light",    "shadow",  "flame",     "storm",    "rain",
-        //                  "snow",     "wind",     "sand",    "lake",      "bridge",   "tower",
-        //                  "castle",   "garden",   "field",   "path",      "road",     "harbor",
-        //                  "canyon",   "meadow",   "cliff",   "spring",    "cave",     "harvest",
-        //                  "dawn",     "ember",    "peak",    "riverbank", "mirror",   "crown",
-        //                  "torch",    "temple",   "lantern", "village"};
+        // char *names[] = {"apple",    "book",     "cat",     "dog",
+        // "elephant", "flower",
+        //                  "grape",    "house",    "island",  "jungle", "kite",
+        //                  "lemon", "mountain", "notebook", "ocean",   "piano",
+        //                  "queen",    "river", "sun",      "tree", "cloud",
+        //                  "stone",     "forest",   "valley", "desert", "hill",
+        //                  "star",    "planet",    "comet",    "galaxy",
+        //                  "universe", "light",    "shadow",  "flame", "storm",
+        //                  "rain", "snow",     "wind",     "sand",    "lake",
+        //                  "bridge",   "tower", "castle",   "garden", "field",
+        //                  "path",      "road",     "harbor", "canyon",
+        //                  "meadow",   "cliff",   "spring",    "cave",
+        //                  "harvest", "dawn",     "ember",    "peak",
+        //                  "riverbank", "mirror",   "crown", "torch", "temple",
+        //                  "lantern", "village"};
 
         srand((unsigned int)time(NULL));
         printf("~~~~~~~~~~   test cops_omap  ~~~~~~~~~~\n");
@@ -54,9 +65,11 @@ int test_omap(int type)
                 }
                 e = clock();
                 double elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
-                double avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
+                double avg =
+                    (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (        " Cf "avg" D "        ) %.6f \u03bcs\n", avg);
+                printf(" > (        " Cf "avg" D "        ) %.6f \u03bcs\n",
+                       avg);
                 format_number(M, strval);
                 printf(" > (" Cf "%12s update" D ")", strval);
                 s = clock();
@@ -69,7 +82,8 @@ int test_omap(int type)
                 elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
                 avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)M;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n", avg);
+                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n",
+                       avg);
                 f = f_omap_free(f);
         }
         printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");

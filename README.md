@@ -16,17 +16,16 @@ The macro with rename are `__init_cops_` + _object type_.
 ```c
 typedef struct cops_allocator {
         void *(*alloc)(size_t);
-        void *(*realloc)(void *, size_t);
         void (*free)(void *);
 } cops_allocator;
 
 static inline void *cops_alloc(size_t size) { return calloc(size, 1); }
-const cops_allocator cops_default_allocator = {cops_alloc, realloc, free};
+const cops_allocator cops_default_allocator = {cops_alloc, free};
 ```
 
 _If I want to use my arena?_ **no problemo**
 
-This structure consent to rewrite `alloc`, `realloc` and `free` in any way prefeared (_technically realloc is not really used for now_)
+This structure consent to rewrite `alloc` and `free` in any way prefeared  
 
 The only request, instead of linking a custom library upfront before `-libc`, is to mutate the item `cops_default_allocator` pointers to keep easy insertion of custom arena inside data structure objects.
 

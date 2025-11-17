@@ -7,12 +7,19 @@
 #include <string.h>
 #include <time.h>
 
+#define X(name, T) __init_cops_arr(name, T)
+X(string, char)
+#undef X
+
 #define X(name, K, V) __init_cops_map(name, K, V)
 X(map, string *, double)
 X(fmap, long, long)
 #undef X
 
-static inline int _cmp(string *s1, string *s2) { return strcmp(s1->data, s2->data); }
+static inline int _cmp(string *s1, string *s2)
+{
+        return strcmp(s1->data, s2->data);
+}
 static inline size_t _hash(string *s) { return djb2(s->data); }
 static inline void _free(string *s) { string_free(s); }
 
@@ -23,17 +30,20 @@ void print_map(map *m);
 
 int test_map(int type)
 {
-        char *names[] = {"apple",    "book",     "cat",     "dog",       "elephant", "flower",
-                         "grape",    "house",    "island",  "jungle",    "kite",     "lemon",
-                         "mountain", "notebook", "ocean",   "piano",     "queen",    "river",
-                         "sun",      "tree",     "cloud",   "stone",     "forest",   "valley",
-                         "desert",   "hill",     "star",    "planet",    "comet",    "galaxy",
-                         "universe", "light",    "shadow",  "flame",     "storm",    "rain",
-                         "snow",     "wind",     "sand",    "lake",      "bridge",   "tower",
-                         "castle",   "garden",   "field",   "path",      "road",     "harbor",
-                         "canyon",   "meadow",   "cliff",   "spring",    "cave",     "harvest",
-                         "dawn",     "ember",    "peak",    "riverbank", "mirror",   "crown",
-                         "torch",    "temple",   "lantern", "village"};
+        char *names[] = {
+            "apple",    "book",   "cat",       "dog",      "elephant",
+            "flower",   "grape",  "house",     "island",   "jungle",
+            "kite",     "lemon",  "mountain",  "notebook", "ocean",
+            "piano",    "queen",  "river",     "sun",      "tree",
+            "cloud",    "stone",  "forest",    "valley",   "desert",
+            "hill",     "star",   "planet",    "comet",    "galaxy",
+            "universe", "light",  "shadow",    "flame",    "storm",
+            "rain",     "snow",   "wind",      "sand",     "lake",
+            "bridge",   "tower",  "castle",    "garden",   "field",
+            "path",     "road",   "harbor",    "canyon",   "meadow",
+            "cliff",    "spring", "cave",      "harvest",  "dawn",
+            "ember",    "peak",   "riverbank", "mirror",   "crown",
+            "torch",    "temple", "lantern",   "village"};
 
         srand((unsigned int)time(NULL));
         printf("~~~~~~~~~~   test cops_map   ~~~~~~~~~~\n");
@@ -156,9 +166,11 @@ int test_map(int type)
                 }
                 e = clock();
                 double elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
-                double avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
+                double avg =
+                    (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)N;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (        " Cf "avg" D "        ) %.6f \u03bcs\n", avg);
+                printf(" > (        " Cf "avg" D "        ) %.6f \u03bcs\n",
+                       avg);
                 format_number(M, strval);
                 printf(" > (" Cf "%12s update" D ")", strval);
                 s = clock();
@@ -170,7 +182,8 @@ int test_map(int type)
                 elapse = (double)(e - s) * 1000.0 / CLOCKS_PER_SEC;
                 avg = (double)(e - s) * 1000000.0 / CLOCKS_PER_SEC / (double)M;
                 printf(" %.3f ms\n", elapse);
-                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n", avg);
+                printf(" > (      " Rf "avg set" D "      ) %.6f \u03bcs\n",
+                       avg);
                 f = fmap_free(f);
         }
         printf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
@@ -180,22 +193,23 @@ int test_map(int type)
 void print_map(map *m)
 {
         if (!m) {
-                printf(Cf "map" Yf "<" Bf "string" D "," Bf "double" Yf ">" D " [" Rf " 0" D "/" Rf
-                          " 0" D "] (" B "refcount: " Rf "0" D ")\n");
+                printf(Cf "map" Yf "<" Bf "string" D "," Bf "double" Yf ">" D
+                          " [" Rf " 0" D "/" Rf " 0" D "] (" B "refcount: " Rf
+                          "0" D ")\n");
                 return;
         }
-        printf(Cf "map" Yf "<" Bf "string" D "," Bf "double" Yf ">" D " [" Gf "%2d" D "/" Gf "%2d" D
-                  "] (" B "refcount: " Pf "%d" D ")\n",
+        printf(Cf "map" Yf "<" Bf "string" D "," Bf "double" Yf ">" D " [" Gf
+                  "%2d" D "/" Gf "%2d" D "] (" B "refcount: " Pf "%d" D ")\n",
                m->nelem, m->cap, m->rc);
         for (size_t i = 0; i < m->cap; i++) {
                 map_node d = m->data[i];
                 if (d.flag >= 0x40) {
-                        printf(" [" Rf "%2ld" D "]: " Yf "0x%02x" D " " Yf "(nil)" D " " Rf "0.0" D
-                               "\n",
+                        printf(" [" Rf "%2ld" D "]: " Yf "0x%02x" D " " Yf
+                               "(nil)" D " " Rf "0.0" D "\n",
                                i, d.flag);
                 } else {
-                        printf(" [" Bf "%2ld" D "]: " Cf "0x%02x" D " \"" Gf "%s" D "\"(rc:%d) " Bf
-                               "%.1f" D "\n",
+                        printf(" [" Bf "%2ld" D "]: " Cf "0x%02x" D " \"" Gf
+                               "%s" D "\"(rc:%d) " Bf "%.1f" D "\n",
                                i, d.flag, d.key->data, d.key->rc, d.val);
                 }
         }
