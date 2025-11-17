@@ -245,6 +245,23 @@ static cops_allocator cops_default_allocator = {cops_alloc, free};
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
+        static inline int name##_del(name *self, size_t pos, T *res)           \
+        {                                                                      \
+                if (!self || !self->data || !self->nelem)                      \
+                        return COPS_INVALID;                                   \
+                if (pos >= self->nelem)                                        \
+                        return COPS_INVALID;                                   \
+                T *trg = &(self->data[pos]);                                   \
+                if (res)                                                       \
+                        memcpy(res, trg, sizeof(T));                           \
+                if (self->free)                                                \
+                        self->free(*trg);                                      \
+                self->data[pos] = self->data[--self->nelem];                   \
+                trg = &(self->data[self->nelem]);                              \
+                memset(trg, 0, sizeof(T));                                     \
+                return COPS_OK;                                                \
+        }                                                                      \
+                                                                               \
         static inline int name##_set(name *self, uint32_t pos, T val)          \
         {                                                                      \
                 if (!self || !self->data || pos > self->nelem)                 \
