@@ -104,6 +104,8 @@ extern "C" {
         {                                                                      \
                 if (!self || !self->data || !self->nelem)                      \
                         return COPS_INVALID;                                   \
+                if (pos == self->nelem - 1)                                    \
+                        return name##_pop(self, res);                          \
                 if (pos >= self->nelem)                                        \
                         return COPS_INVALID;                                   \
                 T *trg = &(self->data[pos]);                                   \
