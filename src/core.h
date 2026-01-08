@@ -37,7 +37,18 @@
                 self->len = len;                                               \
                 return self;                                                   \
         }                                                                      \
-        static inline void name##_free(name *self) { COPS_FREE(self); }
+        static inline void name##_free(name *self)                             \
+        {                                                                      \
+                COPS_ASSERT(self);                                             \
+                if (!self)                                                     \
+                        return;                                                \
+                if (!self->free) {                                             \
+                        for (uint64_t i = 0; i < self->len; i++) {             \
+                                self->free(self->data[i]);                     \
+                        }                                                      \
+                }                                                              \
+                COPS_FREE(self);                                               \
+        }
 
 /* variadic macro utility */
 #define __cops_get_macro(_1, _2, _3, _4, macro, ...) macro

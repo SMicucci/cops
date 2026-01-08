@@ -196,8 +196,16 @@
                                 return COPS_MEMERR;                            \
                         }                                                      \
                 }                                                              \
-                memcpy((self->data + self->len), slice->data,                  \
-                       slice->len * sizeof(T));                                \
+                self->free = slice->free;                                      \
+                self->dup = slice->dup;                                        \
+                if (self->dup) {                                               \
+                        for (uint64_t i = 0; i < slice->len; i++) {            \
+                                self->data[i + self->len] =                    \
+                                    self->dup(slice->data[i]);                 \
+                        }                                                      \
+                } else                                                         \
+                        memcpy((self->data + self->len), slice->data,          \
+                               slice->len * sizeof(T));                        \
                 self->len += slice->len;                                       \
                 SLICE_T##_free(slice);                                         \
                 return COPS_OK;                                                \
