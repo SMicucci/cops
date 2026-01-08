@@ -8,9 +8,9 @@
         typedef struct NAME {                                                  \
                 uint64_t len;                                                  \
                 uint64_t cap;                                                  \
-                T *(*dup)(T);                                                  \
-                void (*free)(T);                                               \
                 T *data;                                                       \
+                void (*free)(T);                                               \
+                T (*dup)(T);                                                   \
         } NAME;                                                                \
                                                                                \
         static inline NAME *NAME##_new()                                       \
@@ -44,6 +44,15 @@
                 }                                                              \
                 COPS_FREE(self->data);                                         \
                 COPS_FREE(self);                                               \
+        }                                                                      \
+                                                                               \
+        static inline int NAME##_reset(NAME *self)                             \
+        {                                                                      \
+                COPS_ASSERT(self);                                             \
+                if (!self)                                                     \
+                        return COPS_INVALID;                                   \
+                self->len = 0;                                                 \
+                return COPS_OK;                                                \
         }                                                                      \
                                                                                \
         static inline int NAME##_push(NAME *self, T val)                       \
@@ -156,9 +165,18 @@
                 if (!slice) {                                                  \
                         return (SLICE_T *)NULL;                                \
                 }                                                              \
-                memcpy(slice->data, self->data, self->len * sizeof(T));        \
+                slice->free = self->free;                                      \
+                slice->dup = self->dup;                                        \
+                if (self->dup) {                                               \
+                        for (uint64_t i = 0; i < self->len; i++) {             \
+                                slice->data[i] = self->dup(slice->data[i]);    \
+                        }                                                      \
+                } else                                                         \
+                        memcpy(slice->data, self->data,                        \
+                               self->len * sizeof(T));                         \
                 return slice;                                                  \
         }                                                                      \
+                                                                               \
         static inline int NAME##_import(NAME *self, SLICE_T *slice)            \
         {                                                                      \
                 COPS_ASSERT(self);                                             \

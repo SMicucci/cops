@@ -26,6 +26,8 @@
 #define init_slice(T, name)                                                    \
         typedef struct name {                                                  \
                 uint64_t len;                                                  \
+                void (*free)(T);                                               \
+                T (*dup)(T);                                                   \
                 T data[];                                                      \
         } name;                                                                \
         static inline name *name##_new(uint64_t len)                           \
