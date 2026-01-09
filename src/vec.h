@@ -160,6 +160,9 @@
                                                                                \
         static inline SLICE_T *NAME##_export(NAME *self)                       \
         {                                                                      \
+                COPS_ASSERT(self);                                             \
+                if (!self)                                                     \
+                        return (SLICE_T *)NULL;                                \
                 SLICE_T *slice = SLICE_T##_new(self->len);                     \
                 COPS_ASSERT(slice);                                            \
                 if (!slice) {                                                  \
@@ -196,8 +199,8 @@
                                 return COPS_MEMERR;                            \
                         }                                                      \
                 }                                                              \
-                self->free = slice->free;                                      \
-                self->dup = slice->dup;                                        \
+                self->free = self->free ? self->free : slice->free;            \
+                self->dup = self->dup ? self->dup : slice->dup;                \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < slice->len; i++) {            \
                                 self->data[i + self->len] =                    \
