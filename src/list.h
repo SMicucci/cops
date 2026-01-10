@@ -36,10 +36,19 @@
                 if (!self)                                                     \
                         return;                                                \
                 NAME##_list_node *trg = self->head;                            \
-                while (trg != NULL) {                                          \
-                        NAME##_list_node *next = trg->next;                    \
-                        COPS_FREE(trg);                                        \
-                        trg = next;                                            \
+                if (self->free) {                                              \
+                        while (trg != NULL) {                                  \
+                                NAME##_list_node *next = trg->next;            \
+                                self->free(trg->val);                          \
+                                COPS_FREE(trg);                                \
+                                trg = next;                                    \
+                        }                                                      \
+                } else {                                                       \
+                        while (trg != NULL) {                                  \
+                                NAME##_list_node *next = trg->next;            \
+                                COPS_FREE(trg);                                \
+                                trg = next;                                    \
+                        }                                                      \
                 }                                                              \
         }                                                                      \
                                                                                \
