@@ -26,8 +26,6 @@
 #define init_slice(T, name)                                                    \
         typedef struct name {                                                  \
                 uint64_t len;                                                  \
-                void (*free)(T);                                               \
-                T (*dup)(T);                                                   \
                 T data[];                                                      \
         } name;                                                                \
         static inline name *name##_new(uint64_t len)                           \
@@ -42,11 +40,6 @@
                 COPS_ASSERT(self);                                             \
                 if (!self)                                                     \
                         return;                                                \
-                if (!self->free) {                                             \
-                        for (uint64_t i = 0; i < self->len; i++) {             \
-                                self->free(self->data[i]);                     \
-                        }                                                      \
-                }                                                              \
                 COPS_FREE(self);                                               \
         }
 

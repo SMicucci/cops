@@ -16,12 +16,12 @@
                 uint64_t len;                                                  \
                 NAME##_list_node *head, *tail;                                 \
                 void (*free)(T);                                               \
-                T *(*dup)(T);                                                  \
+                T (*dup)(T);                                                   \
         } NAME;                                                                \
                                                                                \
         static inline NAME *NAME##_new()                                       \
         {                                                                      \
-                NAME *self = COPS_ALLOC(sizeof(T));                            \
+                NAME *self = COPS_ALLOC(sizeof(*self));                        \
                 COPS_ASSERT(self);                                             \
                 if (!self)                                                     \
                         return NULL;                                           \
@@ -50,6 +50,7 @@
                                 trg = next;                                    \
                         }                                                      \
                 }                                                              \
+                COPS_FREE(self);                                               \
         }                                                                      \
                                                                                \
         static inline int NAME##_push_front(NAME *self, T val)                 \
@@ -61,11 +62,10 @@
                 COPS_ASSERT(node);                                             \
                 if (!node)                                                     \
                         return COPS_MEMERR;                                    \
-                *node = (NAME##_list_node){NULL, NULL, val};                   \
+                *node = (NAME##_list_node){self->head, NULL, val};             \
                 if (!self->len) {                                              \
                         self->head = self->tail = node;                        \
                 } else {                                                       \
-                        node->next = self->head;                               \
                         self->head->prev = node;                               \
                         self->head = node;                                     \
                 }                                                              \
@@ -82,12 +82,11 @@
                 COPS_ASSERT(node);                                             \
                 if (!node)                                                     \
                         return COPS_MEMERR;                                    \
-                *node = (NAME##_list_node){NULL, NULL, val};                   \
+                *node = (NAME##_list_node){NULL, self->tail, val};             \
                 if (!self->len) {                                              \
                         self->head = self->tail = node;                        \
                 } else {                                                       \
-                        node->prev = self->tail;                               \
-                        self->tail->prev = node;                               \
+                        self->tail->next = node;                               \
                         self->tail = node;                                     \
                 }                                                              \
                 self->len++;                                                   \
@@ -141,7 +140,7 @@
                 COPS_ASSERT(node);                                             \
                 if (!self || !node || !self->head || !self->tail)              \
                         return COPS_INVALID;                                   \
-                NAME##_list_node *tmp = COPS_ALLOC(sizeof(*node));             \
+                NAME##_list_node *tmp = COPS_ALLOC(sizeof(*tmp));              \
                 COPS_ASSERT(tmp);                                              \
                 if (!tmp)                                                      \
                         return COPS_MEMERR;                                    \
@@ -160,7 +159,7 @@
                 COPS_ASSERT(node);                                             \
                 if (!self || !node || !self->head || !self->tail)              \
                         return COPS_INVALID;                                   \
-                NAME##_list_node *tmp = COPS_ALLOC(sizeof(*node));             \
+                NAME##_list_node *tmp = COPS_ALLOC(sizeof(*tmp));              \
                 COPS_ASSERT(tmp);                                              \
                 if (!tmp)                                                      \
                         return COPS_MEMERR;                                    \
@@ -200,22 +199,20 @@
         {                                                                      \
                 COPS_ASSERT(self);                                             \
                 if (!self)                                                     \
-                        return (SLICE_T *)NULL;                                \
+                        return NULL;                                           \
                 SLICE_T *slice = SLICE_T##_new(self->len);                     \
                 COPS_ASSERT(slice);                                            \
                 if (!slice)                                                    \
-                        return (SLICE_T *)NULL;                                \
-                NAME##_lisst_node *trg = self->head;                           \
-                slice->free = self->free;                                      \
-                slice->dup = self->dup;                                        \
+                        return NULL;                                           \
+                NAME##_list_node *trg = self->head;                            \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < self->len; i++) {             \
                                 COPS_ASSERT(trg);                              \
                                 if (!trg) {                                    \
                                         SLICE_T##_free(slice);                 \
-                                        return (SLICE_T *)NULL;                \
+                                        return NULL;                           \
                                 }                                              \
-                                slice->data[i] = self->dup(trg->value);        \
+                                slice->data[i] = self->dup(trg->val);          \
                                 trg = trg->next;                               \
                         }                                                      \
                 } else {                                                       \
@@ -223,28 +220,26 @@
                                 COPS_ASSERT(trg);                              \
                                 if (!trg) {                                    \
                                         SLICE_T##_free(slice);                 \
-                                        return (SLICE_T *)NULL;                \
+                                        return NULL;                           \
                                 }                                              \
-                                slice->data[i] = trg->value;                   \
+                                slice->data[i] = trg->val;                     \
                                 trg = trg->next;                               \
                         }                                                      \
                 }                                                              \
                 return slice;                                                  \
         }                                                                      \
                                                                                \
-        static inline int NAME##_import(NAME *self, SLICE_T slice)             \
+        static inline int NAME##_import(NAME *self, SLICE_T *slice)            \
         {                                                                      \
                 COPS_ASSERT(self);                                             \
                 COPS_ASSERT(slice);                                            \
                 if (!self || !slice)                                           \
                         return COPS_INVALID;                                   \
-                self->free = self->free ? self->free : slice->free;            \
-                self->dup = self->dup ? self->dup : slice->dup;                \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < slice->len; i++) {            \
                                 NAME##_list_node *tmp =                        \
                                     COPS_ALLOC(sizeof(*tmp));                  \
-                                COPS_ASSERT(*tmp);                             \
+                                COPS_ASSERT(tmp);                              \
                                 if (!tmp)                                      \
                                         return COPS_MEMERR;                    \
                                 *tmp = (NAME##_list_node){                     \
@@ -258,7 +253,7 @@
                         for (uint64_t i = 0; i < slice->len; i++) {            \
                                 NAME##_list_node *tmp =                        \
                                     COPS_ALLOC(sizeof(*tmp));                  \
-                                COPS_ASSERT(*tmp);                             \
+                                COPS_ASSERT(tmp);                              \
                                 if (!tmp)                                      \
                                         return COPS_MEMERR;                    \
                                 *tmp = (NAME##_list_node){NULL, self->tail,    \
@@ -268,4 +263,5 @@
                                 self->len++;                                   \
                         }                                                      \
                 }                                                              \
+                return COPS_OK;                                                \
         }

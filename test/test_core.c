@@ -1,7 +1,21 @@
+#include <stdio.h>
+
 #define COPS_ASSERT_ENABLE
 #include "../src/core.h"
 
-#include <stdio.h>
+/*
+ * structs examples
+ * */
+typedef struct Entity {
+        int id;
+        char *str;
+} Entity;
+typedef struct Vect3 {
+        long x;
+        long y;
+        long z;
+} Vect3;
+typedef void *Ptr;
 
 init_slice(int, int_vla);
 init_slice(char, sds);

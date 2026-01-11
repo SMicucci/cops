@@ -168,8 +168,6 @@
                 if (!slice) {                                                  \
                         return (SLICE_T *)NULL;                                \
                 }                                                              \
-                slice->free = self->free;                                      \
-                slice->dup = self->dup;                                        \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < self->len; i++) {             \
                                 slice->data[i] = self->dup(slice->data[i]);    \
@@ -199,8 +197,6 @@
                                 return COPS_MEMERR;                            \
                         }                                                      \
                 }                                                              \
-                self->free = self->free ? self->free : slice->free;            \
-                self->dup = self->dup ? self->dup : slice->dup;                \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < slice->len; i++) {            \
                                 self->data[i + self->len] =                    \
