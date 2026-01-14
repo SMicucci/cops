@@ -22,17 +22,19 @@
         static inline NAME *NAME##_new()                                       \
         {                                                                      \
                 NAME *self = COPS_ALLOC(sizeof(*self));                        \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "failed allocation");                      \
                 if (!self)                                                     \
                         return NULL;                                           \
                 self->len = 0;                                                 \
                 self->head = self->tail = NULL;                                \
+                self->free = NULL;                                             \
+                self->dup = NULL;                                              \
                 return self;                                                   \
         }                                                                      \
                                                                                \
         static inline void NAME##_free(NAME *self)                             \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return;                                                \
                 NAME##_list_node *trg = self->head;                            \
@@ -55,11 +57,11 @@
                                                                                \
         static inline int NAME##_push_front(NAME *self, T val)                 \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
                 NAME##_list_node *node = COPS_ALLOC(sizeof(*node));            \
-                COPS_ASSERT(node);                                             \
+                COPS_ASSERT(node && "failed allocation");                      \
                 if (!node)                                                     \
                         return COPS_MEMERR;                                    \
                 *node = (NAME##_list_node){self->head, NULL, val};             \
@@ -75,11 +77,11 @@
                                                                                \
         static inline int NAME##_push_back(NAME *self, T val)                  \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
                 NAME##_list_node *node = COPS_ALLOC(sizeof(*node));            \
-                COPS_ASSERT(node);                                             \
+                COPS_ASSERT(node && "failed allocation");                      \
                 if (!node)                                                     \
                         return COPS_MEMERR;                                    \
                 *node = (NAME##_list_node){NULL, self->tail, val};             \
@@ -95,8 +97,9 @@
                                                                                \
         static inline int NAME##_pop_front(NAME *self, T *res)                 \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                if (!self || self->head)                                       \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(self->head && "empty reference");                  \
+                if (!self || !self->head)                                      \
                         return COPS_INVALID;                                   \
                 if (res)                                                       \
                         *res = self->head->val;                                \
@@ -115,8 +118,9 @@
                                                                                \
         static inline int NAME##_pop_back(NAME *self, T *res)                  \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                if (!self || self->tail)                                       \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(self->tail && "empty reference");                  \
+                if (!self || !self->tail)                                      \
                         return COPS_INVALID;                                   \
                 if (res)                                                       \
                         *res = self->tail->val;                                \
@@ -136,45 +140,52 @@
         static inline int NAME##_insert_before(NAME *self,                     \
                                                NAME##_list_node *node, T val)  \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(node);                                             \
-                if (!self || !node || !self->head || !self->tail)              \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(node && "invalid reference");                      \
+                COPS_ASSERT(self->head && "empty reference");                  \
+                if (!self || !node || !self->head)                             \
                         return COPS_INVALID;                                   \
                 NAME##_list_node *tmp = COPS_ALLOC(sizeof(*tmp));              \
-                COPS_ASSERT(tmp);                                              \
+                COPS_ASSERT(tmp && "failed allocation");                       \
                 if (!tmp)                                                      \
                         return COPS_MEMERR;                                    \
-                *tmp = (NAME##_list_node){node->prev, node, val};              \
-                if (node->prev)                                                \
-                        node->prev->next = tmp;                                \
-                if (self->head == node)                                        \
+                *tmp = (NAME##_list_node){node, node->prev, val};              \
+                if (tmp->prev) {                                               \
+                        tmp->prev->next = tmp;                                 \
+                } else {                                                       \
                         self->head = tmp;                                      \
+                }                                                              \
+                node->prev = tmp;                                              \
                 self->len++;                                                   \
                 return COPS_OK;                                                \
         }                                                                      \
+                                                                               \
         static inline int NAME##_insert_after(NAME *self,                      \
                                               NAME##_list_node *node, T val)   \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(node);                                             \
-                if (!self || !node || !self->head || !self->tail)              \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(node && "invalid reference");                      \
+                COPS_ASSERT(self->tail && "empty reference");                  \
+                if (!self || !node || !self->tail)                             \
                         return COPS_INVALID;                                   \
                 NAME##_list_node *tmp = COPS_ALLOC(sizeof(*tmp));              \
-                COPS_ASSERT(tmp);                                              \
+                COPS_ASSERT(tmp && "failed allocation");                       \
                 if (!tmp)                                                      \
                         return COPS_MEMERR;                                    \
-                *tmp = (NAME##_list_node){node, node->next, val};              \
-                if (node->next)                                                \
-                        node->next->prev = tmp;                                \
-                if (self->tail == node)                                        \
+                *tmp = (NAME##_list_node){node->next, node, val};              \
+                if (tmp->next) {                                               \
+                        tmp->next->prev = tmp;                                 \
+                } else {                                                       \
                         self->tail = tmp;                                      \
+                }                                                              \
+                node->next = tmp;                                              \
                 self->len++;                                                   \
                 return COPS_OK;                                                \
         }                                                                      \
         static inline int NAME##_remove(NAME *self, NAME##_list_node *node)    \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(node);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(node && "invalid reference");                      \
                 if (!self || !node || !self->head || !self->tail)              \
                         return COPS_INVALID;                                   \
                 NAME##_list_node *n = node->next, *p = node->prev;             \
@@ -197,17 +208,17 @@
                                                                                \
         static inline SLICE_T *NAME##_export(NAME *self)                       \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return NULL;                                           \
                 SLICE_T *slice = SLICE_T##_new(self->len);                     \
-                COPS_ASSERT(slice);                                            \
+                COPS_ASSERT(slice && "failed allocation");                     \
                 if (!slice)                                                    \
                         return NULL;                                           \
                 NAME##_list_node *trg = self->head;                            \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < self->len; i++) {             \
-                                COPS_ASSERT(trg);                              \
+                                COPS_ASSERT(trg && "invalid reference");       \
                                 if (!trg) {                                    \
                                         SLICE_T##_free(slice);                 \
                                         return NULL;                           \
@@ -217,7 +228,7 @@
                         }                                                      \
                 } else {                                                       \
                         for (uint64_t i = 0; i < self->len; i++) {             \
-                                COPS_ASSERT(trg);                              \
+                                COPS_ASSERT(trg && "invalid reference");       \
                                 if (!trg) {                                    \
                                         SLICE_T##_free(slice);                 \
                                         return NULL;                           \
@@ -231,15 +242,15 @@
                                                                                \
         static inline int NAME##_import(NAME *self, SLICE_T *slice)            \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(slice);                                            \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(slice && "invalid reference");                     \
                 if (!self || !slice)                                           \
                         return COPS_INVALID;                                   \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < slice->len; i++) {            \
                                 NAME##_list_node *tmp =                        \
                                     COPS_ALLOC(sizeof(*tmp));                  \
-                                COPS_ASSERT(tmp);                              \
+                                COPS_ASSERT(tmp && "failed allocation");       \
                                 if (!tmp)                                      \
                                         return COPS_MEMERR;                    \
                                 *tmp = (NAME##_list_node){                     \
@@ -253,7 +264,7 @@
                         for (uint64_t i = 0; i < slice->len; i++) {            \
                                 NAME##_list_node *tmp =                        \
                                     COPS_ALLOC(sizeof(*tmp));                  \
-                                COPS_ASSERT(tmp);                              \
+                                COPS_ASSERT(tmp && "failed allocation");       \
                                 if (!tmp)                                      \
                                         return COPS_MEMERR;                    \
                                 *tmp = (NAME##_list_node){NULL, self->tail,    \
