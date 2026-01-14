@@ -4,17 +4,16 @@
 #define COPS_ASSERT_ENABLE
 #include "../src/core.h"
 
-typedef struct Entity {
-        int id;
-        char *str;
-} Entity;
+#include "test.h"
+
+// Entity declaration
 init_slice(Entity, slice_ent);
 
-typedef void *Ptr;
+// Generic declaration
 init_slice(Ptr, slice);
 
-init_slice(double, vec);
-init_slice(vec *, vec_slice);
+// Vec3 delcaration
+init_slice(Vec3 *, vec_slice);
 
 int main(void)
 {
@@ -57,13 +56,15 @@ int main(void)
                 return 1;
         }
         for (uint64_t i = 0; i < nested_slice->len; i++) {
-                nested_slice->data[i] = vec_new(i + 1);
+                Vec3 *tmp = malloc(sizeof(Vec3));
+                *tmp = (Vec3){i + 1, 2 * i, -i + 5};
+                nested_slice->data[i] = tmp;
         }
         for (uint64_t i = 0; i < nested_slice->len; i++) {
-                vec_free(nested_slice->data[i]);
+                free(nested_slice->data[i]);
         }
-        printf("Nested slice test passed (outer len=%lu)\n", nested_slice->len);
         vec_slice_free(nested_slice);
+        printf("Nested slice test passed\n");
         printf("All slice tests passed!\n");
         return 0;
 }
