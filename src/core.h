@@ -31,13 +31,13 @@
         static inline name *name##_new(uint64_t len)                           \
         {                                                                      \
                 name *self = COPS_ALLOC(sizeof(*self) + sizeof(T) * len);      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "failed allocation");                      \
                 self->len = len;                                               \
                 return self;                                                   \
         }                                                                      \
         static inline void name##_free(name *self)                             \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return;                                                \
                 COPS_FREE(self);                                               \

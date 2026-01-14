@@ -16,14 +16,16 @@
         static inline NAME *NAME##_new()                                       \
         {                                                                      \
                 NAME *self = COPS_ALLOC(sizeof(*self));                        \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "failed allocation");                      \
                 if (!self) {                                                   \
                         return NULL;                                           \
                 }                                                              \
+                self->free = NULL;                                             \
+                self->dup = NULL;                                              \
                 self->cap = 8;                                                 \
                 self->len = 0;                                                 \
                 self->data = COPS_ALLOC(sizeof(T) * self->cap);                \
-                COPS_ASSERT(self->data);                                       \
+                COPS_ASSERT(self->data && "failed allocation");                \
                 if (!self->data) {                                             \
                         COPS_FREE(self);                                       \
                         return NULL;                                           \
@@ -33,7 +35,7 @@
                                                                                \
         static inline void NAME##_free(NAME *self)                             \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self) {                                                   \
                         return;                                                \
                 }                                                              \
@@ -48,16 +50,20 @@
                                                                                \
         static inline int NAME##_reset(NAME *self)                             \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
+                if (self->free) {                                              \
+                        for (uint64_t i = 0; i < self->len; i++)               \
+                                self->free(self->data[i]);                     \
+                }                                                              \
                 self->len = 0;                                                 \
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
         static inline int NAME##_push(NAME *self, T val)                       \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self) {                                                   \
                         return COPS_INVALID;                                   \
                 }                                                              \
@@ -65,7 +71,7 @@
                         self->cap *= 2;                                        \
                         self->data =                                           \
                             COPS_REALLOC(self->data, self->cap * sizeof(T));   \
-                        COPS_ASSERT(self->data);                               \
+                        COPS_ASSERT(self->data && "failed allocation");        \
                         if (!self->data) {                                     \
                                 return COPS_MEMERR;                            \
                         }                                                      \
@@ -76,7 +82,7 @@
                                                                                \
         static inline int NAME##_pop(NAME *self, T *res)                       \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self) {                                                   \
                         return COPS_INVALID;                                   \
                 }                                                              \
@@ -91,9 +97,10 @@
                                                                                \
         static inline int NAME##_set(NAME *self, uint64_t pos, T val, T *old)  \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(pos < self->len);                                  \
-                if (!self || pos >= self->len) {                               \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos < self->len ||                                 \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos >= self->len || pos < 0) {                    \
                         return COPS_INVALID;                                   \
                 }                                                              \
                 if (old) {                                                     \
@@ -107,9 +114,10 @@
                                                                                \
         static inline int NAME##_get(NAME *self, uint64_t pos, T *val)         \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(pos < self->len);                                  \
-                if (!self || pos >= self->len) {                               \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos < self->len ||                                 \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos >= self->len || pos < 0) {                    \
                         return COPS_INVALID;                                   \
                 }                                                              \
                 if (val) {                                                     \
@@ -120,16 +128,17 @@
                                                                                \
         static inline int NAME##_insert(NAME *self, uint64_t pos, T val)       \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(pos <= self->len);                                 \
-                if (!self || pos > self->len) {                                \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos <= self->len ||                                \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos > self->len || pos < 0) {                     \
                         return COPS_INVALID;                                   \
                 }                                                              \
                 if (self->len == self->cap) {                                  \
                         self->cap *= 2;                                        \
                         self->data =                                           \
                             COPS_REALLOC(self->data, self->cap * sizeof(T));   \
-                        COPS_ASSERT(self->data);                               \
+                        COPS_ASSERT(self->data && "failed allocation");        \
                         if (!self->data) {                                     \
                                 return COPS_MEMERR;                            \
                         }                                                      \
@@ -141,9 +150,10 @@
                                                                                \
         static inline int NAME##_remove(NAME *self, uint64_t pos, T *res)      \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(pos < self->len);                                  \
-                if (!self || pos >= self->len) {                               \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos < self->len ||                                 \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos >= self->len || pos < 0) {                    \
                         return COPS_INVALID;                                   \
                 }                                                              \
                 if (res) {                                                     \
@@ -160,17 +170,17 @@
                                                                                \
         static inline SLICE_T *NAME##_export(NAME *self)                       \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return (SLICE_T *)NULL;                                \
                 SLICE_T *slice = SLICE_T##_new(self->len);                     \
-                COPS_ASSERT(slice);                                            \
+                COPS_ASSERT(slice && "failed allocation");                     \
                 if (!slice) {                                                  \
-                        return (SLICE_T *)NULL;                                \
+                        return NULL;                                           \
                 }                                                              \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < self->len; i++) {             \
-                                slice->data[i] = self->dup(slice->data[i]);    \
+                                slice->data[i] = self->dup(self->data[i]);     \
                         }                                                      \
                 } else                                                         \
                         memcpy(slice->data, self->data,                        \
@@ -180,8 +190,8 @@
                                                                                \
         static inline int NAME##_import(NAME *self, SLICE_T *slice)            \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
-                COPS_ASSERT(slice);                                            \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(slice && "invalid reference");                     \
                 if (!self || !slice) {                                         \
                         return COPS_INVALID;                                   \
                 }                                                              \
@@ -192,7 +202,7 @@
                 if (self->cap != old_cap) { /*realloc*/                        \
                         self->data =                                           \
                             COPS_REALLOC(self->data, self->cap * sizeof(T));   \
-                        COPS_ASSERT(self->data);                               \
+                        COPS_ASSERT(self->data && "failed allocation");        \
                         if (!self->data) {                                     \
                                 return COPS_MEMERR;                            \
                         }                                                      \
