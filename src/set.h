@@ -1,4 +1,5 @@
 #include "core.h"
+#include <stdint.h>
 #define __cops_set_choose(...)                                                 \
         __cops_get_macro(__VA_ARGS__, __cops_err_arg_count, __cops_init_set_3, \
                          __cops_init_set_2, __cops_err_arg_count, )
@@ -50,6 +51,8 @@
                 }                                                              \
                 self->hash = hash;                                             \
                 self->cmp = cmp;                                               \
+                self->free = NULL;                                             \
+                self->dup = NULL;                                              \
                 return self;                                                   \
         }                                                                      \
                                                                                \
@@ -233,8 +236,6 @@
                 COPS_ASSERT(slice);                                            \
                 if (!slice)                                                    \
                         return slice;                                          \
-                slice->free = self->free;                                      \
-                slice->dup = self->dup;                                        \
                 uint64_t j = 0;                                                \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < self->cap; i++) {             \
@@ -284,9 +285,6 @@
                         return res;                                            \
                 }                                                              \
                 COPS_FREE(old);                                                \
-                /* insert slice data */                                        \
-                self->free = self->free ? self->free : slice->free;            \
-                self->dup = self->dup ? self->dup : slice->dup;                \
                 if (self->dup) {                                               \
                         for (uint64_t i = 0; i < slice->len; i++) {            \
                                 T val = self->dup(slice->data[i]);             \
@@ -305,3 +303,31 @@
                 SLICE_T##_free(slice);                                         \
                 return COPS_OK;                                                \
         }
+
+/* utility hash function to pick */
+
+// mixin string bounded
+static uint64_t djb2(char *str, uint64_t len)
+{
+        uint64_t hash = 5381;
+        int c;
+        uint64_t i = 0;
+        while ((c = *str++) && i < len) {
+                hash = ((hash << 5) + hash) + c;
+                i++;
+        }
+        return hash;
+}
+
+// mixin integer (and casted float/double)
+static uint64_t hash64shift(uint64_t key)
+{
+        key = (~key) + (key << 21);
+        key = key ^ (key >> 24);
+        key = (key + (key << 3)) + (key << 8);
+        key = key ^ (key >> 14);
+        key = (key + (key << 2)) + (key << 4);
+        key = key ^ (key >> 28);
+        key = key + (key << 31);
+        return key;
+}

@@ -15,9 +15,6 @@ init_vec(Entity, ent_vec, slice_ent);
 // Generic declaration
 init_slice(Ptr, slice);
 init_vec(Ptr, vec_t, slice);
-static void PtrFree(Ptr);
-static Ptr PtrDup(Ptr);
-static Ptr PtrNew(int, const char *);
 
 // Vec3 declaration
 init_slice(Vec3, slice_vec);
@@ -98,40 +95,4 @@ int main(void)
         }
         Vec3DynArr_free(da);
         return 0;
-}
-
-//
-// Generic implementation of function pointer
-//
-static void PtrFree(Ptr ptr)
-{
-        Entity *in = ptr;
-        if (in && in->str)
-                free(in->str);
-        if (in)
-                free(in);
-}
-static Ptr PtrDup(Ptr ptr)
-{
-        assert(ptr && "invalid reference");
-        Entity *in = ptr;
-        Entity *res = malloc(sizeof(Entity));
-        assert(res && "failed allocation");
-        res->id = in->id;
-        res->str = malloc(strlen(in->str) + 1);
-        assert(res->str && "failed allocation");
-        strcpy(res->str, in->str);
-        res->str[strlen(in->str)] = 0;
-        return res;
-}
-static Ptr PtrNew(int id, const char *str)
-{
-        Entity *res = malloc(sizeof(Entity));
-        assert(res && "failed allocation");
-        res->id = id;
-        res->str = malloc(strlen(str) + 1);
-        assert(res->str && "failed allocation");
-        strcpy(res->str, str);
-        res->str[strlen(str)] = 0;
-        return res;
 }
