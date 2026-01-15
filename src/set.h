@@ -22,13 +22,13 @@
                 uint64_t cap;                                                  \
                 uint64_t len;                                                  \
                 NAME##_set_node *data;                                         \
-                size_t (*hash)(T);                                             \
+                uint64_t (*hash)(T);                                           \
                 int (*cmp)(T, T);                                              \
                 void (*free)(T);                                               \
                 T (*dup)(T);                                                   \
         } NAME;                                                                \
                                                                                \
-        static inline NAME *NAME##_new(size_t (*hash)(T), int (*cmp)(T, T))    \
+        static inline NAME *NAME##_new(uint64_t (*hash)(T), int (*cmp)(T, T))  \
         {                                                                      \
                 COPS_ASSERT(hash);                                             \
                 COPS_ASSERT(cmp);                                              \
@@ -98,7 +98,7 @@
                                                                                \
         static inline int __##NAME##_insert(NAME *self, T val)                 \
         {                                                                      \
-                size_t pos, entry = self->hash(val) % self->cap;               \
+                uint64_t pos, entry = self->hash(val) % self->cap;             \
                 uint8_t jmp = 0;                                               \
                 /* max jump supported */                                       \
                 while (jmp < __cops_set_max_jump) {                            \
@@ -140,12 +140,12 @@
                         COPS_ASSERT(self->data);                               \
                         if (!self->data)                                       \
                                 return COPS_MEMERR;                            \
-                        for (size_t i = 0; i < self->cap; i++) {               \
+                        for (uint64_t i = 0; i < self->cap; i++) {             \
                                 self->data[i].free = 1;                        \
                         }                                                      \
                         self->len = 0;                                         \
                         /* iterate truh old storage */                         \
-                        for (size_t i = 0; i < self->cap / 2; i++) {           \
+                        for (uint64_t i = 0; i < self->cap / 2; i++) {         \
                                 NAME##_set_node *n = old + i;                  \
                                 if (n->free || n->tomb)                        \
                                         continue;                              \
@@ -164,7 +164,7 @@
                 COPS_ASSERT(self);                                             \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
-                size_t pos, entry = self->hash(val) % self->cap;               \
+                uint64_t pos, entry = self->hash(val) % self->cap;             \
                 uint8_t jmp = 0;                                               \
                 while (jmp < __cops_set_max_jump) {                            \
                         pos = __cops_set_probe(entry, jmp, self->cap);         \
@@ -183,7 +183,7 @@
                 COPS_ASSERT(self);                                             \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
-                size_t pos, entry = self->hash(val) % self->cap;               \
+                uint64_t pos, entry = self->hash(val) % self->cap;             \
                 uint8_t jmp = 0;                                               \
                 while (jmp < __cops_set_max_jump) {                            \
                         pos = __cops_set_probe(entry, jmp, self->cap);         \
@@ -207,7 +207,7 @@
                 COPS_ASSERT(self);                                             \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
-                size_t pos, entry = self->hash(val) % self->cap;               \
+                uint64_t pos, entry = self->hash(val) % self->cap;             \
                 uint8_t jmp = 0;                                               \
                 while (jmp < __cops_set_max_jump) {                            \
                         pos = __cops_set_probe(entry, jmp, self->cap);         \
@@ -271,11 +271,11 @@
                 COPS_ASSERT(self->data);                                       \
                 if (!self->data)                                               \
                         return COPS_MEMERR;                                    \
-                for (size_t i = 0; i < self->cap; i++) {                       \
+                for (uint64_t i = 0; i < self->cap; i++) {                     \
                         self->data[i].free = 1;                                \
                 }                                                              \
                 self->len = 0;                                                 \
-                for (size_t i = 0; i < old_cap; i++) {                         \
+                for (uint64_t i = 0; i < old_cap; i++) {                       \
                         NAME##_set_node *n = old + i;                          \
                         if (n->free || n->tomb)                                \
                                 continue;                                      \

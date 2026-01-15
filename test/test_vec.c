@@ -66,7 +66,7 @@ int main(void)
                              "epsilon", "flare", "geronimo", "hammoc",
                              "iqos",    "jack",  "kirk",     "larry"};
         for (int i = 0; i < 12; i++) {
-                vec_t_push(v, PtrNew(i, arr_str[i]));
+                vec_t_push(v, PtrNew(arr_str[i]));
         }
         slice *slice_ = vec_t_export(v);
         slice *s_tmp = slice_new(slice_->len);

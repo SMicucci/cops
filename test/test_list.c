@@ -82,11 +82,11 @@ int main(void)
         for (int i = 0; i < 12; i++) {
                 if (i % 2)
                         COPS_ASSERT(
-                            ll_push_front(gen_list, PtrNew(i, arr_str[i])) ==
+                            ll_push_front(gen_list, PtrNew(arr_str[i])) ==
                             COPS_OK);
                 else
                         COPS_ASSERT(
-                            ll_push_back(gen_list, PtrNew(i, arr_str[i])) ==
+                            ll_push_back(gen_list, PtrNew(arr_str[i])) ==
                             COPS_OK);
         }
         COPS_ASSERT(gen_list->len == 12);

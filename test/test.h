@@ -21,7 +21,7 @@ typedef void *Ptr;
 //
 static void PtrFree(Ptr ptr)
 {
-        Entity *in = ptr;
+        Entity *in = (Entity *)ptr;
         if (in && in->str)
                 free(in->str);
         if (in)
@@ -30,22 +30,23 @@ static void PtrFree(Ptr ptr)
 static Ptr PtrDup(Ptr ptr)
 {
         assert(ptr && "invalid reference");
-        Entity *in = ptr;
-        Entity *res = malloc(sizeof(Entity));
+        Entity *in = (Entity *)ptr;
+        Entity *res = (Entity *)malloc(sizeof(Entity));
         assert(res && "failed allocation");
         res->id = in->id;
-        res->str = malloc(strlen(in->str) + 1);
+        res->str = (char *)malloc(strlen(in->str) + 1);
         assert(res->str && "failed allocation");
         strcpy(res->str, in->str);
         res->str[strlen(in->str)] = 0;
         return res;
 }
-static Ptr PtrNew(int id, const char *str)
+static Ptr PtrNew(const char *str)
 {
-        Entity *res = malloc(sizeof(Entity));
+        Entity *res = (Entity *)malloc(sizeof(Entity));
         assert(res && "failed allocation");
-        res->id = id;
-        res->str = malloc(strlen(str) + 1);
+        static int glob_id = 0;
+        res->id = glob_id++;
+        res->str = (char *)malloc(strlen(str) + 1);
         assert(res->str && "failed allocation");
         strcpy(res->str, str);
         res->str[strlen(str)] = 0;
