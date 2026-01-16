@@ -136,8 +136,8 @@
                 if (__cops_set_max_cap(self->len, self->cap)) {                \
                         self->cap *= 2;                                        \
                         NAME##_set_node *old = self->data;                     \
-                        self->data = (NAME##_set_node *)COPS_ALLOC(sizeof(T) * \
-                                                                   self->cap); \
+                        self->data = (NAME##_set_node *)COPS_ALLOC(            \
+                            sizeof(*old) * self->cap);                         \
                         COPS_ASSERT(self->data);                               \
                         if (!self->data)                                       \
                                 return COPS_MEMERR;                            \
@@ -150,7 +150,7 @@
                                 NAME##_set_node *n = old + i;                  \
                                 if (n->free || n->tomb)                        \
                                         continue;                              \
-                                int res = __##NAME##_insert(self, val);        \
+                                int res = __##NAME##_insert(self, n->val);     \
                                 if (res == COPS_OK)                            \
                                         continue;                              \
                                 return res;                                    \
