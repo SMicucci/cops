@@ -96,6 +96,7 @@
                 return COPS_INVALID;                                           \
         }                                                                      \
                                                                                \
+        /* private function for simplification of reallocation*/               \
         static inline int __##NAME##_insert(NAME *self, T val)                 \
         {                                                                      \
                 uint64_t pos, entry = self->hash(val) % self->cap;             \
