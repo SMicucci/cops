@@ -153,6 +153,7 @@ KV KV_dup(KV self)
         COPS_ASSERT(res);
         uint64_t _len = strlen(self->key) + 1;
         res->key = malloc(_len);
+        res->val = self->val;
         memcpy(res->key, self->key, _len);
         return res;
 }

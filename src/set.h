@@ -7,7 +7,7 @@
 
 /* RH HASHSET magic number */
 #define __cops_set_probe(pos, jmp, cap) ((pos + (jmp * jmp + jmp) / 2) % cap)
-#define __cops_set_max_cap(len, cap) (((100 * len) / cap) > 90)
+#define __cops_set_max_cap(len, cap) (((100 * (len)) / cap) > 90)
 #define __cops_set_max_jump (1 << 6)
 
 #define __cops_init_set_2(T, NAME)                                             \
@@ -48,6 +48,8 @@
                 }                                                              \
                 for (uint64_t i = 0; i < self->cap; i++) {                     \
                         self->data[i].free = 1;                                \
+                        self->data[i].tomb = 0;                                \
+                        self->data[i].jumps = 0;                               \
                 }                                                              \
                 self->hash = hash;                                             \
                 self->cmp = cmp;                                               \
@@ -143,6 +145,8 @@
                                 return COPS_MEMERR;                            \
                         for (uint64_t i = 0; i < self->cap; i++) {             \
                                 self->data[i].free = 1;                        \
+                                self->data[i].tomb = 0;                        \
+                                self->data[i].jumps = 0;                       \
                         }                                                      \
                         self->len = 0;                                         \
                         /* iterate truh old storage */                         \
@@ -268,12 +272,14 @@
                         self->cap *= 2;                                        \
                 NAME##_set_node *old = self->data;                             \
                 self->data =                                                   \
-                    (NAME##_set_node *)COPS_ALLOC(sizeof(T) * old_cap);        \
+                    (NAME##_set_node *)COPS_ALLOC(sizeof(*old) * self->cap);   \
                 COPS_ASSERT(self->data);                                       \
                 if (!self->data)                                               \
                         return COPS_MEMERR;                                    \
                 for (uint64_t i = 0; i < self->cap; i++) {                     \
                         self->data[i].free = 1;                                \
+                        self->data[i].tomb = 0;                                \
+                        self->data[i].jumps = 0;                               \
                 }                                                              \
                 self->len = 0;                                                 \
                 for (uint64_t i = 0; i < old_cap; i++) {                       \
