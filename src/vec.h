@@ -95,7 +95,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_set(NAME *self, uint64_t pos, T val, T *old)  \
+        static inline int NAME##_set(NAME *self, uint64_t pos, T val, T *res)  \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 COPS_ASSERT(pos < self->len ||                                 \
@@ -103,8 +103,8 @@
                 if (!self || pos >= self->len || pos < 0) {                    \
                         return COPS_INVALID;                                   \
                 }                                                              \
-                if (old) {                                                     \
-                        *old = self->data[pos];                                \
+                if (res) {                                                     \
+                        *res = self->data[pos];                                \
                 } else if (self->free) {                                       \
                         self->free(self->data[pos]);                           \
                 }                                                              \
@@ -112,7 +112,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_get(NAME *self, uint64_t pos, T *val)         \
+        static inline int NAME##_get(NAME *self, uint64_t pos, T *res)         \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 COPS_ASSERT(pos < self->len ||                                 \
@@ -120,8 +120,8 @@
                 if (!self || pos >= self->len || pos < 0) {                    \
                         return COPS_INVALID;                                   \
                 }                                                              \
-                if (val) {                                                     \
-                        *val = self->data[pos];                                \
+                if (res) {                                                     \
+                        *res = self->data[pos];                                \
                 }                                                              \
                 return COPS_OK;                                                \
         }                                                                      \

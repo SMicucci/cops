@@ -2,25 +2,26 @@
 
 # COPS
 
-**C Object Preprocessing Subsistem**  
+**C Organized Plain Structures**  
 
-This library implement with macro collection object, import one, use anywhere.
+This library implement macro of collections, import once, use anywhere.
 
-the supported collection are:  
-- VLA _(variadic lenght array)_
-- Vector _(dinamyc array)_
+Integrated and interchangable collection are:  
+- Slice _(variadic lenght array)_
+- Vec _(dinamyc array)_
 - List _(double linked list)_
-- Set _(hash set)_
-- Oset _(rb-tree set)_
+- Hset _(robin hood hash set)_
+- Tset _(red-black tree set)_
 
 ## Library usage
 
-To use this library in a simple way is recomended to hold all collection in a single header file to use around the project.  
+To use this library in a mantainable way is recomended to hold all collection in a single header file to use around the project.  
 
 ```c
 #ifndef COLLETION_H
 #define COLLETION_H
 
+// use only in dev, will enable assert instead of handling error
 #define COPS_ASSERT_ENABLE
 #include "cops.h"
 
@@ -31,13 +32,23 @@ init_oset(int, int_oset, int_slice);
 #endif /* end guard #define COLLETION_H */
 ```
 
+In the main file you should use `COPS_IMPLEMENT` to enable implementation.  
+```c
+#define COPS_IMPLEMENT
+#include "collection.h"
+
+int main(int argc, char *argv[]) {
+//...
+```
+
 ## Library behavior
 
 This macro shall be used before the `#include`:  
-- `COPS_ASSERT_ENABLE`: enable assertion in the library when declared
-- `COPS_ALLOC`: override libc `malloc`
-- `COPS_REALLOC`: override libc `realloc`
-- `COPS_FREE`: override libc `free`
+- `COPS_ASSERT_ENABLE` enable assertion in the library when declared
+- `COPS_IMPLEMENT` enable implementation of functions (standard stb behavior)
+- `COPS_ALLOC` override libc `malloc`
+- `COPS_REALLOC` override libc `realloc`
+- `COPS_FREE` override libc `free`
 
 the libc alternative have to be declared all three or could lead to undefued behavior
 
@@ -47,9 +58,9 @@ the libc alternative have to be declared all three or could lead to undefued beh
 init_collection(T, NAME, SLICE_T);
 ```
 
-all collection except the slice/VLA have 2 possible initialization setup:
-- fast `(T, NAME)`: fast initialization without conversion to other kind of collection to cut short on cerimony
-- complete `(T, NAME, SLICE_T)`: complete initialization, require `init_slice(T, NAME2)` to be linked so collection can use slice to import and export data and convert into other collection type
+all collection except the Slice have 2 possible initialization setup:
+- fast `(T, NAME)`: deny conversion to other kind of collection to cut short on cerimony
+- complete `(T, NAME, SLICE_T)`: require `init_slice(T, SLICE_T)` to allow conversion between collection
 
 ## Common Concept
 
@@ -79,15 +90,50 @@ int collection_import(NAME *self, SLICE_T *slice);
 ```
 import function return error as result, consent a bulk insert of a slice.  
 
-
 ```c
 int  collection_func(NAME *self, ...);
 ```
 All collection function return status as error.  
 - `COPS_OK` => 0, nothing wrong happened
 - `COPS_INVALID` => -1, invalid state happened (invalid pointer most common case)
-- `COPS_MEMERR` => -2, memory allocation given error
+- `COPS_MEMERR` => -2, memory allocation given error  
 
-all these error trigger an assertion if enabled, if not return this error instead.
+all these error when `COPS_ASSERT_ENABLE` is defined, trigger an assertion with little description.
+
+```c
+
+```
+
+## Slice
+Generic VLA useful for compact data storage and convertion between container.  
+Each instance have `len` value as boundaries, doesn't know if all value are valid.  
+Collection implements following API:  
+- `collection *collection_new(uint64_t len)` for correct allocation
+- `void collection_free(collection *self)` for correct release
+
+## Vec
+Generic dynamic array implementation, unordered for fast internal operation.  
+Sorting is not implemented but can be performed in this manner:  
+```c
+#include <stdlib.h>
+qsort(self->data, sizeof(*self->data), self->len, my_cmp_func);
+```
+Each instance have `data` as external storage, `cap` as storage size, `len` as valid element, `free` and `dup` as optional parameter for handling ownership (__for easy of use an arena could be a favourite choice__).  
+Collection implements following API:  
+- `collection *collection_new()`
+- `void collection_free(collection *self)`
+- `int collection_reset(collection *self)`
+- `int collection_push(collection *self, T val)`
+- `int collection_pop(collection *self, T *res)`
+- `int collection_set(collection *self, uint64_t pos, T val, T *res)`
+- `int collection_get(collection *self, uint64_t pos, T *res)`
+- `int collection_insert(collection *self, uint64_t pos, T val, T *res)`
+- `int collection_remove(collection *self, uint64_t pos, T *res)`
+- `int collection_import(collection *self, slice *slice)`
+- `slice *collection_export(collection *self)`
+
+## List
 
 
+## Set
+## Oset

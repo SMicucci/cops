@@ -6,13 +6,8 @@
 #define init_oset(...)                                                         \
         __cops_expand(__cops_oset_choose(__VA_ARGS__)(__VA_ARGS__))
 
-/**
- * when int is returned:
- *  0: no error
- * -1: invalid arguments
- * -2: memory unavaible
- * -3: logic internal error
- * */
+#define __cops_rb_tree_rotate_left(NAME, T, self, node)
+#define __cops_rb_tree_rotate_right(NAME, T, self, node)
 
 #define __init_cops_oset_2(NAME, T)                                            \
                                                                                \
@@ -33,7 +28,7 @@
         static inline NAME *NAME##_new(int (*cmp)(T, T))                       \
         {                                                                      \
                 NAME *self = COPS_ALLOC(sizeof(*self));                        \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "failed allocation");                      \
                 if (!self)                                                     \
                         return NULL;                                           \
                 self->cmp = cmp;                                               \
@@ -46,7 +41,7 @@
                                                                                \
         static inline void NAME##_free(NAME *self)                             \
         {                                                                      \
-                COPS_ASSERT(self);                                             \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (self->len) {                                               \
                         NAME##_tree_node *n = self->root;                      \
                         while (n) {                                            \
@@ -60,6 +55,8 @@
                                                 p->left = NULL;                \
                                         if (p && p->right == n)                \
                                                 p->right = NULL;               \
+                                        if (self->free)                        \
+                                                self->free(p->val);            \
                                         COPS_FREE(n);                          \
                                         n = p;                                 \
                                 }                                              \
@@ -74,6 +71,9 @@
         static inline int NAME##_node_rotate_right(NAME *self,                 \
                                                    NAME##_tree_node *p)        \
         {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(p && "invalid reference");                         \
+                COPS_ASSERT(p->left && "empty reference");                     \
                 if (!self || !p)                                               \
                         return COPS_INVALID;                                   \
                 NAME##_tree_node *x = p->left, *g = p->parent;                 \
@@ -100,6 +100,9 @@
         static inline int NAME##_node_rotate_left(NAME *self,                  \
                                                   NAME##_tree_node *p)         \
         {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(p && "invalid reference");                         \
+                COPS_ASSERT(p->right && "empty reference");                    \
                 if (!self || !p)                                               \
                         return COPS_INVALID;                                   \
                 NAME##_tree_node *x = p->right, *g = p->parent;                \
@@ -125,11 +128,11 @@
                                                                                \
         static inline int NAME##_add(NAME *self, T val)                        \
         {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
-                if (!self->cmp)                                                \
-                        return COPS_INVALID; /* init node*/                    \
                 NAME##_tree_node *e = COPS_ALLOC(sizeof(*e));                  \
+                COPS_ASSERT(e && "failed allocation");                         \
                 if (!e)                                                        \
                         return COPS_MEMERR;                                    \
                 *e = (NAME##_tree_node){NULL, NULL, NULL, 1, val};             \
@@ -220,6 +223,7 @@
                                                                                \
         static inline int NAME##_has(NAME *self, T val)                        \
         {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
                 if (!self->cmp)                                                \
@@ -239,10 +243,9 @@
                                                                                \
         static inline int NAME##_del(NAME *self, T *val)                       \
         {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
                         return COPS_INVALID;                                   \
-                if (!self->cmp)                                                \
-                        return COPS_INVALID; /* valid tree*/                   \
                 NAME##_tree_node *x = self->root;                              \
                 while (x) {                                                    \
                         int cmp = self->cmp(*val, x->val);                     \
