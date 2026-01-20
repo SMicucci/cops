@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#define COPS_IMPLEMENTATION
 #define COPS_ASSERT_ENABLE
-#include "../src/list.h"
+#include "../src/03_list.h"
 
 #include "test.h"
 
@@ -35,7 +36,7 @@ int main(void)
                             COPS_OK);
         }
         COPS_ASSERT(ent_list->len == 20);
-        ent_ll_list_node *iter = ent_list->head;
+        ent_ll_ll_node *iter = ent_list->head;
         printf("~~~ push front and back ~~~\n");
         for (int i = 0; i < ent_list->len; i++) { // print list
                 printf("[%02d]: (%d) '%s'\n", i, iter->val.id, iter->val.str);
@@ -90,7 +91,7 @@ int main(void)
                             COPS_OK);
         }
         COPS_ASSERT(gen_list->len == 12);
-        ll_list_node *g_tmp;
+        ll_ll_node *g_tmp;
         g_tmp = gen_list->tail;
         printf("~~~ insert pointer in it ~~~\n");
         for (int i = gen_list->len - 1; i >= 0; i--) { // print

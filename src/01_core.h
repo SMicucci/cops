@@ -23,19 +23,30 @@
 
 /* slice declaration for interop between collections/prototypes */
 #include <stdint.h>
-#define init_slice(T, name)                                                    \
-        typedef struct name {                                                  \
+#if defined(COPS_IMPLEMENTATION)
+#define init_slice(T, NAME)                                                    \
+        __cops_slice_decl(T, NAME) __cops_slice_impl(T, NAME)
+#else
+#define init_slice(T, NAME) __cops_slice_decl(T, NAME);
+#endif /* if defined(COPS_IMPLEMENTATION) */
+
+#define __cops_slice_decl(T, NAME)                                             \
+        typedef struct NAME {                                                  \
                 uint64_t len;                                                  \
                 T data[];                                                      \
-        } name;                                                                \
-        static inline name *name##_new(uint64_t len)                           \
+        } NAME;                                                                \
+        NAME *NAME##_new(uint64_t len);                                        \
+        void NAME##_free(NAME *self);
+
+#define __cops_slice_impl(T, NAME)                                             \
+        NAME *NAME##_new(uint64_t len)                                         \
         {                                                                      \
-                name *self = COPS_ALLOC(sizeof(*self) + sizeof(T) * len);      \
+                NAME *self = COPS_ALLOC(sizeof(*self) + sizeof(T) * len);      \
                 COPS_ASSERT(self && "failed allocation");                      \
                 self->len = len;                                               \
                 return self;                                                   \
         }                                                                      \
-        static inline void name##_free(name *self)                             \
+        void NAME##_free(NAME *self)                                           \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \

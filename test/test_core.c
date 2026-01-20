@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define COPS_IMPLEMENTATION
 #define COPS_ASSERT_ENABLE
-#include "../src/core.h"
+#include "../src/01_core.h"
 
 #include "test.h"
 

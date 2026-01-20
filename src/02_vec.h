@@ -1,10 +1,22 @@
-#include "core.h"
+#include "01_core.h"
 #define __cops_vec_choose(...)                                                 \
         __cops_get_macro(__VA_ARGS__, __cops_err_arg_count, __cops_init_vec_3, \
                          __cops_init_vec_2, __cops_err_arg_count, )
 #define init_vec(...) __cops_expand(__cops_vec_choose(__VA_ARGS__)(__VA_ARGS__))
 
+#if defined(COPS_IMPLEMENTATION)
 #define __cops_init_vec_2(T, NAME)                                             \
+        __cops_init_vec_2_decl(T, NAME) __cops_init_vec_2_impl(T, NAME)
+#define __cops_init_vec_3(T, NAME, SLICE_T)                                    \
+        __cops_init_vec_3_decl(T, NAME, SLICE_T)                               \
+            __cops_init_vec_3_impl(T, NAME, SLICE_T)
+#else
+#define __cops_init_vec_2(T, NAME) __cops_init_vec_2_decl(T, NAME)
+#define __cops_init_vec_3(T, NAME, SLICE_T)                                    \
+        __cops_init_vec_3_decl(T, NAME, SLICE_T)
+#endif /* if defined(COPS_IMPLEMENTATION) */
+
+#define __cops_init_vec_2_decl(T, NAME)                                        \
         typedef struct NAME {                                                  \
                 uint64_t len;                                                  \
                 uint64_t cap;                                                  \
@@ -12,8 +24,19 @@
                 void (*free)(T);                                               \
                 T (*dup)(T);                                                   \
         } NAME;                                                                \
+        NAME *NAME##_new();                                                    \
+        void NAME##_free(NAME *self);                                          \
+        int NAME##_reset(NAME *self);                                          \
+        int NAME##_push(NAME *self, T val);                                    \
+        int NAME##_pop(NAME *self, T *res);                                    \
+        int NAME##_set(NAME *self, uint64_t pos, T val, T *res);               \
+        int NAME##_get(NAME *self, uint64_t pos, T *res);                      \
+        int NAME##_insert(NAME *self, uint64_t pos, T val);                    \
+        int NAME##_remove(NAME *self, uint64_t pos, T *res);
+
+#define __cops_init_vec_2_impl(T, NAME)                                        \
                                                                                \
-        static inline NAME *NAME##_new()                                       \
+        NAME *NAME##_new()                                                     \
         {                                                                      \
                 NAME *self = COPS_ALLOC(sizeof(*self));                        \
                 COPS_ASSERT(self && "failed allocation");                      \
@@ -33,7 +56,7 @@
                 return self;                                                   \
         }                                                                      \
                                                                                \
-        static inline void NAME##_free(NAME *self)                             \
+        void NAME##_free(NAME *self)                                           \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 if (!self) {                                                   \
@@ -48,7 +71,7 @@
                 COPS_FREE(self);                                               \
         }                                                                      \
                                                                                \
-        static inline int NAME##_reset(NAME *self)                             \
+        int NAME##_reset(NAME *self)                                           \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
@@ -61,7 +84,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_push(NAME *self, T val)                       \
+        int NAME##_push(NAME *self, T val)                                     \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 if (!self) {                                                   \
@@ -80,7 +103,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_pop(NAME *self, T *res)                       \
+        int NAME##_pop(NAME *self, T *res)                                     \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 if (!self) {                                                   \
@@ -95,7 +118,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_set(NAME *self, uint64_t pos, T val, T *res)  \
+        int NAME##_set(NAME *self, uint64_t pos, T val, T *res)                \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 COPS_ASSERT(pos < self->len ||                                 \
@@ -112,7 +135,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_get(NAME *self, uint64_t pos, T *res)         \
+        int NAME##_get(NAME *self, uint64_t pos, T *res)                       \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 COPS_ASSERT(pos < self->len ||                                 \
@@ -126,7 +149,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_insert(NAME *self, uint64_t pos, T val)       \
+        int NAME##_insert(NAME *self, uint64_t pos, T val)                     \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 COPS_ASSERT(pos <= self->len ||                                \
@@ -148,7 +171,7 @@
                 return COPS_OK;                                                \
         }                                                                      \
                                                                                \
-        static inline int NAME##_remove(NAME *self, uint64_t pos, T *res)      \
+        int NAME##_remove(NAME *self, uint64_t pos, T *res)                    \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 COPS_ASSERT(pos < self->len ||                                 \
@@ -165,10 +188,13 @@
                 return COPS_OK;                                                \
         }
 
-#define __cops_init_vec_3(T, NAME, SLICE_T)                                    \
+#define __cops_init_vec_3_decl(T, NAME, SLICE_T)                               \
         __cops_init_vec_2(T, NAME);                                            \
-                                                                               \
-        static inline SLICE_T *NAME##_export(NAME *self)                       \
+        SLICE_T *NAME##_export(NAME *self);                                    \
+        int NAME##_import(NAME *self, SLICE_T *slice);
+
+#define __cops_init_vec_3_impl(T, NAME, SLICE_T)                               \
+        SLICE_T *NAME##_export(NAME *self)                                     \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 if (!self)                                                     \
@@ -188,7 +214,7 @@
                 return slice;                                                  \
         }                                                                      \
                                                                                \
-        static inline int NAME##_import(NAME *self, SLICE_T *slice)            \
+        int NAME##_import(NAME *self, SLICE_T *slice)                          \
         {                                                                      \
                 COPS_ASSERT(self && "invalid reference");                      \
                 COPS_ASSERT(slice && "invalid reference");                     \

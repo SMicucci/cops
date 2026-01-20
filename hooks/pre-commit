@@ -1,0 +1,7 @@
+#!/bin/sh
+
+python bundle.py
+
+if [ -n "$(git status --porcelain cops.h)" ]; then
+    git add ./cops.h
+fi

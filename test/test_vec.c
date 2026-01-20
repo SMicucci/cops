@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define COPS_IMPLEMENTATION
 #define COPS_ASSERT_ENABLE
-#include "../src/vec.h"
+#include "../src/02_vec.h"
 
 #include "test.h"
 

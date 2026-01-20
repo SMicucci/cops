@@ -3,105 +3,107 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define COPS_IMPLEMENTATION
 #define COPS_ASSERT_ENABLE
-#include "../src/set.h"
+#include "../src/04_hset.h"
 
 #include "test.h"
 
 init_slice(Entity, ent_slice);
-init_set(Entity, ent_set, ent_slice);
+init_hset(Entity, ent_hset, ent_slice);
 uint64_t ent_hash(Entity self);
 int ent_cmp(Entity self, Entity oth);
-void entr_print(ent_set *e_set);
+void entr_print(ent_hset *e_hset);
 
 typedef struct KV {
         char *key;
         uint64_t val;
 } *KV;
 init_slice(KV, slice);
-init_set(KV, set, slice);
+init_hset(KV, hset, slice);
 uint64_t KV_hash(KV self);
 int KV_cmp(KV self, KV oth);
 void KV_free(KV self);
 KV KV_dup(KV self);
 KV KV_new(char *key, uint64_t val);
 
-void kvset_print(set *kvset);
+void kvhset_print(hset *kvhset);
 
 int main(void)
 {
         //
         // Test Entity
         //
-        ent_set *e_set = ent_set_new(ent_hash, ent_cmp);
+        ent_hset *e_hset = ent_hset_new(ent_hash, ent_cmp);
         // populate [add]
         for (int i = 0; i < 20; i++) {
                 Entity *ent = PtrNew("test");
                 printf("%d \n", i);
-                ent_set_add(e_set, *ent);
+                ent_hset_add(e_hset, *ent);
                 free(ent);
         }
         printf("~~~ populate entity ~~~\n"); // print routine
-        entr_print(e_set);
+        entr_print(e_hset);
         // delete [del]
-        for (int i = 0; i < e_set->len; i++) {
+        for (int i = 0; i < e_hset->len; i++) {
                 if (i % 4)
                         continue;
-                ent_set_del(e_set, (Entity){i, ""});
+                ent_hset_del(e_hset, (Entity){i, ""});
         }
         printf("~~~ trim some entity ~~~\n"); // print routine
-        entr_print(e_set);
-        // alter [has, get, set]
-        for (int i = 0; i < e_set->cap; i++) {
+        entr_print(e_hset);
+        // alter [has, get, hset]
+        for (int i = 0; i < e_hset->cap; i++) {
                 if (i % 3)
                         continue;
-                int has = ent_set_has(e_set, (Entity){i, ""});
+                int has = ent_hset_has(e_hset, (Entity){i, ""});
                 assert(has != COPS_INVALID);
                 if (!has)
                         continue;
                 Entity node;
-                ent_set_get(e_set, (Entity){i, ""}, &node);
+                ent_hset_get(e_hset, (Entity){i, ""}, &node);
                 free(node.str);
                 node.str = malloc(9);
                 strcpy(node.str, "modified");
                 node.str[9] = 0;
-                ent_set_set(e_set, node);
+                ent_hset_hset(e_hset, node);
         }
         printf("~~~ trim some entity ~~~\n"); // print routine
-        entr_print(e_set);
-        ent_set_free(e_set);
+        entr_print(e_hset);
+        ent_hset_free(e_hset);
 
         //
         // Test KV
         //
-        set *kvset = set_new(KV_hash, KV_cmp);
-        kvset->free = KV_free;
-        kvset->dup = KV_dup;
+        hset *kvhset = hset_new(KV_hash, KV_cmp);
+        kvhset->free = KV_free;
+        kvhset->dup = KV_dup;
         char *arr_str[20] = {"alpha",  "bravo",    "charlie", "delta",
                              "echo",   "foxtrot",  "golf",    "hammoc",
                              "iqos",   "juliet",   "kirk",    "lima",
                              "mike",   "november", "oscar",   "papa",
                              "quebec", "romeo",    "sierra",  "tango"};
         for (int i = 0; i < 20; i++) {
-                set_add(kvset, KV_new(arr_str[i], 100 + i * 4));
+                hset_add(kvhset, KV_new(arr_str[i], 100 + i * 4));
         }
-        printf("~~~ create generic set ~~~\n"); // print routine
-        kvset_print(kvset);
-        slice *kvslice = set_export(kvset);
+        printf("~~~ create generic hset ~~~\n"); // print routine
+        kvhset_print(kvhset);
+        slice *kvslice = hset_export(kvhset);
         for (int i = 0; i < kvslice->len; i++) {
                 kvslice->data[i]->key[0] = 'x';
         }
-        set_import(kvset, kvslice);
-        printf("~~~ create generic set ~~~\n"); // print routine
-        kvset_print(kvset);
-        set_free(kvset);
+        hset_import(kvhset, kvslice);
+        printf("~~~ create generic hset ~~~\n"); // print routine
+        kvhset_print(kvhset);
+        hset_free(kvhset);
         return 0;
 }
 
-void entr_print(ent_set *e_set)
+void entr_print(ent_hset *e_hset)
 {
-        for (int i = 0; i < e_set->cap; i++) {
-                ent_set_set_node node = e_set->data[i];
+        for (int i = 0; i < e_hset->cap; i++) {
+                ent_hset_rh_node node = e_hset->data[i];
                 printf("> [\x1b[32m%02d\x1b[0m]", i);
                 if (node.free) {
                         printf(" \x1b[36mF\x1b[0m\n");
@@ -114,10 +116,10 @@ void entr_print(ent_set *e_set)
         }
 }
 
-void kvset_print(set *kvset)
+void kvhset_print(hset *kvhset)
 {
-        for (int i = 0; i < kvset->cap; i++) {
-                set_set_node node = kvset->data[i];
+        for (int i = 0; i < kvhset->cap; i++) {
+                hset_rh_node node = kvhset->data[i];
                 printf("> [\x1b[32m%02d\x1b[0m]", i);
                 if (node.free) {
                         printf(" \x1b[36mF\x1b[0m\n");

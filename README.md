@@ -32,9 +32,9 @@ init_oset(int, int_oset, int_slice);
 #endif /* end guard #define COLLETION_H */
 ```
 
-In the main file you should use `COPS_IMPLEMENT` to enable implementation (classic stb-pattern).  
+In the main file you should use `COPS_IMPLEMENTATION` to enable implementation (classic stb-pattern).  
 ```c
-#define COPS_IMPLEMENT
+#define COPS_IMPLEMENTATION
 #include "collection.h"
 
 int main(int argc, char *argv[]) {
@@ -51,7 +51,7 @@ This macro shall be used **before** the `#include`:
 | `COPS_INVALID` | function made something wrong |
 | `COPS_MEMERR` | function failed allocation |
 | `COPS_ASSERT_ENABLE` | on error run `assert` |
-| `COPS_IMPLEMENT` | enable code implementation |
+| `COPS_IMPLEMENTATION` | enable function implementation |
 | `COPS_ALLOC` | override libc `malloc` |
 | `COPS_REALLOC` | override libc `realloc` |
 | `COPS_FREE` | override libc `free` |
@@ -91,7 +91,7 @@ struct slice {
 
 
 | API | Input | Return | Description |
-| :-: | :-: | :-: | :-- |
+| :-: | :-: | :-: | --- |
 | `new` | `uint64_t len` | `*self` | create new slice |
 | `free` | `NAME *self` | `status` | destroy given slice |
 
@@ -114,7 +114,6 @@ struct vec {
 > #include <stdlib.h>
 > qsort(self->data, sizeof(*self->data), self->len, my_cmp_func);
 > ```
-> 
 
 | API | Input | Return | Description |
 | :-: | --- | :-: | --- |
@@ -127,23 +126,22 @@ struct vec {
 | `set` | `NAME *self, uint64_t pos, T val, T *res` | `status` | update pos entry with val, could get res |
 | `insert` | `NAME *self, uint64_t pos, T val` | `status` | insert new val in pos |
 | `remove` | `NAME *self, uint64_t pos, T val, T *res` | `status` | delete val in pos, could get res |
-| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and release slice |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
 | `export` | `NAME *self` | `*slice` | create slice as representation |
 
 
 ## List
 
 ```c
-struct list_node {
-    list_node *next;
-    list_node *prev;
+struct ll_node {
+    ll_node *next;
+    ll_node *prev;
     T val;
 };
-
 struct list {
     uint64_t len;
-    list_node *head;
-    list_node *tail;
+    ll_node *head;
+    ll_node *tail;
     void (*free)(T);
     T (*dup)(T);
 };
@@ -151,21 +149,21 @@ struct list {
 
 
 | API | Input | Return | Description |
-| :-: | --- | :-: | --- |
+| :-: | :-- | :-: | :-- |
 | `new` | `uint64_t len` | `*self` | create new slice |
 | `free` | `NAME *self` | `status` | destroy given slice |
-| `reset` | `NAME *self` | `status` | reset slice length |
-| `push` | `NAME *self, T val` | `status` | push back val |
-| `pop` | `NAME *self, T *res` | `status` | pop back res |
-| `get` | `NAME *self, uint64_t pos, T val` | `status` | get val from pos |
-| `set` | `NAME *self, uint64_t pos, T val, T *res` | `status` | update pos entry with val, could get res |
-| `insert` | `NAME *self, uint64_t pos, T val` | `status` | insert new val in pos |
-| `remove` | `NAME *self, uint64_t pos, T val, T *res` | `status` | delete val in pos, could get res |
-| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and release slice |
+| `push_front` | `NAME *self, T val` | `status` | push head val |
+| `push_back` | `NAME *self, T val` | `status` | push tail val |
+| `pop_front` | `NAME *self, T *res` | `status` | pop head res |
+| `pop_back` | `NAME *self, T *res` | `status` | pop tail res |
+| `insert_before` | `NAME *self, ll_node *node, T val` | `status` | insert val before node |
+| `insert_after` | `NAME *self, ll_node *node, T val` | `status` | insert val after node |
+| `remove` | `NAME *self, ll_node *node, T val, list_node *res` | `status` | delete val in pos, could get res |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
 | `export` | `NAME *self` | `*slice` | create slice as representation |
 
 
-## Set
+## Hset
 
 ```c
 struct rh_node {
@@ -174,7 +172,6 @@ struct rh_node {
     uint8_t jumps: 6;
     T val;
 };
-
 struct list {
     uint64_t len;
     uint64_t cap;
@@ -191,14 +188,14 @@ struct list {
 | :-: | --- | :-: | --- |
 | `new` | `uint64_t len` | `*self` | create new slice |
 | `free` | `NAME *self` | `status` | destroy given slice |
-| `reset` | `NAME *self` | `status` | reset slice length |
+| `set` | `NAME *self, T val` | `status` | update val if exist |
+| `get` | `NAME *self, uint64_t pos, T val, T *res` | `status` | search val if exist and get res |
+| `has` | `NAME *self, uint64_t pos, T val` | `bool` | search if val exist |
 | `push` | `NAME *self, T val` | `status` | push back val |
 | `pop` | `NAME *self, T *res` | `status` | pop back res |
-| `get` | `NAME *self, uint64_t pos, T val` | `status` | get val from pos |
-| `set` | `NAME *self, uint64_t pos, T val, T *res` | `status` | update pos entry with val, could get res |
-| `insert` | `NAME *self, uint64_t pos, T val` | `status` | insert new val in pos |
-| `remove` | `NAME *self, uint64_t pos, T val, T *res` | `status` | delete val in pos, could get res |
-| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and release slice |
+| `add` | `NAME *self, T val` | `status` | insert new val if not exist |
+| `del` | `NAME *self, T val` | `status` | delete val if exist |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
 | `export` | `NAME *self` | `*slice` | create slice as representation |
 
 
@@ -227,13 +224,9 @@ struct list {
 | :-: | --- | :-: | --- |
 | `new` | `uint64_t len` | `*self` | create new slice |
 | `free` | `NAME *self` | `status` | destroy given slice |
-| `reset` | `NAME *self` | `status` | reset slice length |
-| `push` | `NAME *self, T val` | `status` | push back val |
-| `pop` | `NAME *self, T *res` | `status` | pop back res |
-| `get` | `NAME *self, uint64_t pos, T val` | `status` | get val from pos |
-| `set` | `NAME *self, uint64_t pos, T val, T *res` | `status` | update pos entry with val, could get res |
-| `insert` | `NAME *self, uint64_t pos, T val` | `status` | insert new val in pos |
-| `remove` | `NAME *self, uint64_t pos, T val, T *res` | `status` | delete val in pos, could get res |
-| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and release slice |
+| `has` | `NAME *self, T val` | `bool` | search if val exist |
+| `add` | `NAME *self, T val` | `status` | insert new val if not exist |
+| `del` | `NAME *self, T *val` | `status` | delete val if exist |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
 | `export` | `NAME *self` | `*slice` | create slice as representation |
 
