@@ -78,6 +78,13 @@ Slice work as intermidiate representation between collections (vec, list, hset, 
 - `collection_export`: Create a slice containing all elements (return a borrowed value, if `dup` is declared return copies)  
 - `collection_import`: Bulk-inserts from slice  
 
+## Roadmap
+- **`pool`**: memory pool (list of slab allocator), non interoperable  
+- **`tset`**: implement interoperability  
+- **`pqueue`**: priority queue (heap) implementation, interoperable  
+- **`mgraph`**: matric graph (matrix bitmap + node vec) implementation, non interoperable  
+- **`lgraph`**: light graph (node and edge vec) implementation, non interoperable  
+
 # Collection Reference
 
 ## Slice

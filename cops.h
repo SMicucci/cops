@@ -1363,6 +1363,18 @@ uint64_t hash64shift(uint64_t key);
                 return COPS_OK;                                                \
         }
 /* end import ./src/05_tset.h */
+/* start import ./src/06_pool.h */
+
+#if defined(COPS_IMPLEMENTATION)
+#define __cops_init_pool(T, NAME)                                              \
+        __cops_init_pool_decl(T, NAME) __cops_init_pool_impl(T, NAME)
+#else
+#define __cops_init_pool(T, NAME) __cops_init_pool_decl(T, NAME)
+#endif /* if defined(COPS_IMPLEMENTATION) */
+
+#define __cops_init_pool_decl(T, NAME)
+#define __cops_init_pool_impl(T, NAME)
+/* end import ./src/06_pool.h */
 /* start import ./src/vec.h */
 #define COPS_VEC_H
 
