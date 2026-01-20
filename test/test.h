@@ -1,52 +1,54 @@
-#ifndef TEST_H
-#define TEST_H
+#pragma once
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define D "\x1b[0m"
-#define B "\x1b[1m"
-#define I "\x1b[3m"
-#define U "\x1b[4m"
-#define S "\x1b[9m"
+typedef struct Entity {
+        int id;
+        char *str;
+} Entity;
 
-#define Rf "\x1b[31m"
-#define Gf "\x1b[32m"
-#define Yf "\x1b[33m"
-#define Bf "\x1b[34m"
-#define Pf "\x1b[35m"
-#define Cf "\x1b[36m"
-#define Rb "\x1b[41m"
-#define Gb "\x1b[42m"
-#define Yb "\x1b[43m"
-#define Bb "\x1b[44m"
-#define Pb "\x1b[45m"
-#define Cb "\x1b[46m"
+typedef struct Vec3 {
+        double x;
+        double y;
+        double z;
+} Vec3;
 
-static inline int pow_(int base, int exp)
+typedef void *Ptr;
+
+//
+// Generic implementation of function pointer
+//
+static void PtrFree(Ptr ptr)
 {
-        int res = 1;
-        for (int i = 0; i < exp; i++) {
-                res *= base;
-        }
+        Entity *in = (Entity *)ptr;
+        if (in && in->str)
+                free(in->str);
+        if (in)
+                free(in);
+}
+static Ptr PtrDup(Ptr ptr)
+{
+        assert(ptr && "invalid reference");
+        Entity *in = (Entity *)ptr;
+        Entity *res = (Entity *)malloc(sizeof(Entity));
+        assert(res && "failed allocation");
+        res->id = in->id;
+        res->str = (char *)malloc(strlen(in->str) + 1);
+        assert(res->str && "failed allocation");
+        strcpy(res->str, in->str);
+        res->str[strlen(in->str)] = 0;
         return res;
 }
-
-static inline void format_number(unsigned int n, char res[28])
+static Ptr PtrNew(const char *str)
 {
-        int dept = 0, tmp = n;
-        while (tmp > 9) {
-                tmp = tmp / 10;
-                dept++;
-        }
-        char *c = res;
-        tmp = n;
-        for (int i = dept; i >= 0; i--) {
-                int p = pow_(10, i);
-                int val = tmp / p;
-                *c++ = (char)(val + 48);
-                tmp -= val * p;
-                if (!(i % 3) && i)
-                        *c++ = '\'';
-        }
-        *c = '\0';
+        Entity *res = (Entity *)malloc(sizeof(Entity));
+        assert(res && "failed allocation");
+        static int glob_id = 0;
+        res->id = glob_id++;
+        res->str = (char *)malloc(strlen(str) + 1);
+        assert(res->str && "failed allocation");
+        strcpy(res->str, str);
+        res->str[strlen(str)] = 0;
+        return res;
 }
-
-#endif /* end of include guard: TEST_H */

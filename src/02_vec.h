@@ -1,0 +1,247 @@
+#include "01_core.h"
+#define __cops_vec_choose(...)                                                 \
+        __cops_get_macro(__VA_ARGS__, __cops_err_arg_count, __cops_init_vec_3, \
+                         __cops_init_vec_2, __cops_err_arg_count, )
+#define init_vec(...) __cops_expand(__cops_vec_choose(__VA_ARGS__)(__VA_ARGS__))
+
+#if defined(COPS_IMPLEMENTATION)
+#define __cops_init_vec_2(T, NAME)                                             \
+        __cops_init_vec_2_decl(T, NAME) __cops_init_vec_2_impl(T, NAME)
+#define __cops_init_vec_3(T, NAME, SLICE_T)                                    \
+        __cops_init_vec_3_decl(T, NAME, SLICE_T)                               \
+            __cops_init_vec_3_impl(T, NAME, SLICE_T)
+#else
+#define __cops_init_vec_2(T, NAME) __cops_init_vec_2_decl(T, NAME)
+#define __cops_init_vec_3(T, NAME, SLICE_T)                                    \
+        __cops_init_vec_3_decl(T, NAME, SLICE_T)
+#endif /* if defined(COPS_IMPLEMENTATION) */
+
+#define __cops_init_vec_2_decl(T, NAME)                                        \
+        typedef struct NAME {                                                  \
+                uint64_t len;                                                  \
+                uint64_t cap;                                                  \
+                T *data;                                                       \
+                void (*free)(T);                                               \
+                T (*dup)(T);                                                   \
+        } NAME;                                                                \
+        NAME *NAME##_new();                                                    \
+        void NAME##_free(NAME *self);                                          \
+        int NAME##_reset(NAME *self);                                          \
+        int NAME##_push(NAME *self, T val);                                    \
+        int NAME##_pop(NAME *self, T *res);                                    \
+        int NAME##_set(NAME *self, uint64_t pos, T val, T *res);               \
+        int NAME##_get(NAME *self, uint64_t pos, T *res);                      \
+        int NAME##_insert(NAME *self, uint64_t pos, T val);                    \
+        int NAME##_remove(NAME *self, uint64_t pos, T *res);
+
+#define __cops_init_vec_2_impl(T, NAME)                                        \
+                                                                               \
+        NAME *NAME##_new()                                                     \
+        {                                                                      \
+                NAME *self = COPS_ALLOC(sizeof(*self));                        \
+                COPS_ASSERT(self && "failed allocation");                      \
+                if (!self) {                                                   \
+                        return NULL;                                           \
+                }                                                              \
+                self->free = NULL;                                             \
+                self->dup = NULL;                                              \
+                self->cap = 8;                                                 \
+                self->len = 0;                                                 \
+                self->data = COPS_ALLOC(sizeof(T) * self->cap);                \
+                COPS_ASSERT(self->data && "failed allocation");                \
+                if (!self->data) {                                             \
+                        COPS_FREE(self);                                       \
+                        return NULL;                                           \
+                }                                                              \
+                return self;                                                   \
+        }                                                                      \
+                                                                               \
+        void NAME##_free(NAME *self)                                           \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                if (!self) {                                                   \
+                        return;                                                \
+                }                                                              \
+                if (self->free) {                                              \
+                        for (uint64_t i = 0; i < self->len; i++) {             \
+                                self->free(self->data[i]);                     \
+                        }                                                      \
+                }                                                              \
+                COPS_FREE(self->data);                                         \
+                COPS_FREE(self);                                               \
+        }                                                                      \
+                                                                               \
+        int NAME##_reset(NAME *self)                                           \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                if (!self)                                                     \
+                        return COPS_INVALID;                                   \
+                if (self->free) {                                              \
+                        for (uint64_t i = 0; i < self->len; i++)               \
+                                self->free(self->data[i]);                     \
+                }                                                              \
+                self->len = 0;                                                 \
+                return COPS_OK;                                                \
+        }                                                                      \
+                                                                               \
+        int NAME##_push(NAME *self, T val)                                     \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                if (!self) {                                                   \
+                        return COPS_INVALID;                                   \
+                }                                                              \
+                if (self->len == self->cap) {                                  \
+                        self->cap *= 2;                                        \
+                        self->data =                                           \
+                            COPS_REALLOC(self->data, self->cap * sizeof(T));   \
+                        COPS_ASSERT(self->data && "failed allocation");        \
+                        if (!self->data) {                                     \
+                                return COPS_MEMERR;                            \
+                        }                                                      \
+                }                                                              \
+                self->data[self->len++] = val;                                 \
+                return COPS_OK;                                                \
+        }                                                                      \
+                                                                               \
+        int NAME##_pop(NAME *self, T *res)                                     \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                if (!self) {                                                   \
+                        return COPS_INVALID;                                   \
+                }                                                              \
+                if (res) {                                                     \
+                        *res = self->data[self->len];                          \
+                } else if (self->free) {                                       \
+                        self->free(self->data[self->len]);                     \
+                }                                                              \
+                self->len--;                                                   \
+                return COPS_OK;                                                \
+        }                                                                      \
+                                                                               \
+        int NAME##_set(NAME *self, uint64_t pos, T val, T *res)                \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos < self->len ||                                 \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos >= self->len || pos < 0) {                    \
+                        return COPS_INVALID;                                   \
+                }                                                              \
+                if (res) {                                                     \
+                        *res = self->data[pos];                                \
+                } else if (self->free) {                                       \
+                        self->free(self->data[pos]);                           \
+                }                                                              \
+                self->data[pos] = val;                                         \
+                return COPS_OK;                                                \
+        }                                                                      \
+                                                                               \
+        int NAME##_get(NAME *self, uint64_t pos, T *res)                       \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos < self->len ||                                 \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos >= self->len || pos < 0) {                    \
+                        return COPS_INVALID;                                   \
+                }                                                              \
+                if (res) {                                                     \
+                        *res = self->data[pos];                                \
+                }                                                              \
+                return COPS_OK;                                                \
+        }                                                                      \
+                                                                               \
+        int NAME##_insert(NAME *self, uint64_t pos, T val)                     \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos <= self->len ||                                \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos > self->len || pos < 0) {                     \
+                        return COPS_INVALID;                                   \
+                }                                                              \
+                if (self->len == self->cap) {                                  \
+                        self->cap *= 2;                                        \
+                        self->data =                                           \
+                            COPS_REALLOC(self->data, self->cap * sizeof(T));   \
+                        COPS_ASSERT(self->data && "failed allocation");        \
+                        if (!self->data) {                                     \
+                                return COPS_MEMERR;                            \
+                        }                                                      \
+                }                                                              \
+                self->data[self->len++] = self->data[pos];                     \
+                self->data[pos] = val;                                         \
+                return COPS_OK;                                                \
+        }                                                                      \
+                                                                               \
+        int NAME##_remove(NAME *self, uint64_t pos, T *res)                    \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(pos < self->len ||                                 \
+                            pos >= 0 && "access out of bound");                \
+                if (!self || pos >= self->len || pos < 0) {                    \
+                        return COPS_INVALID;                                   \
+                }                                                              \
+                if (res) {                                                     \
+                        *res = self->data[pos];                                \
+                } else if (self->free) {                                       \
+                        self->free(self->data[pos]);                           \
+                }                                                              \
+                self->data[pos] = self->data[self->len-- - 1];                 \
+                return COPS_OK;                                                \
+        }
+
+#define __cops_init_vec_3_decl(T, NAME, SLICE_T)                               \
+        __cops_init_vec_2(T, NAME);                                            \
+        SLICE_T *NAME##_export(NAME *self);                                    \
+        int NAME##_import(NAME *self, SLICE_T *slice);
+
+#define __cops_init_vec_3_impl(T, NAME, SLICE_T)                               \
+        SLICE_T *NAME##_export(NAME *self)                                     \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                if (!self)                                                     \
+                        return (SLICE_T *)NULL;                                \
+                SLICE_T *slice = SLICE_T##_new(self->len);                     \
+                COPS_ASSERT(slice && "failed allocation");                     \
+                if (!slice) {                                                  \
+                        return NULL;                                           \
+                }                                                              \
+                if (self->dup) {                                               \
+                        for (uint64_t i = 0; i < self->len; i++) {             \
+                                slice->data[i] = self->dup(self->data[i]);     \
+                        }                                                      \
+                } else                                                         \
+                        memcpy(slice->data, self->data,                        \
+                               self->len * sizeof(T));                         \
+                return slice;                                                  \
+        }                                                                      \
+                                                                               \
+        int NAME##_import(NAME *self, SLICE_T *slice)                          \
+        {                                                                      \
+                COPS_ASSERT(self && "invalid reference");                      \
+                COPS_ASSERT(slice && "invalid reference");                     \
+                if (!self || !slice) {                                         \
+                        return COPS_INVALID;                                   \
+                }                                                              \
+                uint64_t old_cap = self->cap;                                  \
+                while (self->cap < self->len + slice->len) {                   \
+                        self->cap *= 2;                                        \
+                }                                                              \
+                if (self->cap != old_cap) { /*realloc*/                        \
+                        self->data =                                           \
+                            COPS_REALLOC(self->data, self->cap * sizeof(T));   \
+                        COPS_ASSERT(self->data && "failed allocation");        \
+                        if (!self->data) {                                     \
+                                return COPS_MEMERR;                            \
+                        }                                                      \
+                }                                                              \
+                if (self->dup) {                                               \
+                        for (uint64_t i = 0; i < slice->len; i++) {            \
+                                self->data[i + self->len] =                    \
+                                    self->dup(slice->data[i]);                 \
+                        }                                                      \
+                } else                                                         \
+                        memcpy((self->data + self->len), slice->data,          \
+                               slice->len * sizeof(T));                        \
+                self->len += slice->len;                                       \
+                SLICE_T##_free(slice);                                         \
+                return COPS_OK;                                                \
+        }

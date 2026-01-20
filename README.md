@@ -2,188 +2,231 @@
 
 # COPS
 
-**C Object Precompile Subsistem**  
+**C Organized Plain Structures**  
 
-This is a simple implementation for every kind of base data structure as public object with macro, as light as possible.
+This library implement macro of collections, import once, use anywhere.
 
-There are two kind of macro, one with default naming convention, one with custom naming (user responsability to avoid collision), this macro are all checked to avoid name collision (pretty rare in my opinion).
+Integrated and interchangable collection are:  
+- Slice _(variadic lenght array)_
+- Vec _(dinamyc array)_
+- List _(double linked list)_
+- Hset _(robin hood hash set)_
+- Tset _(red-black tree set)_
 
-The macro with given name are `init_cops_` + _object type_.  
-The macro with rename are `__init_cops_` + _object type_.  
+## Quick Start
 
-## Allocator
+To mantain usability, clone "cops.h", create you own centered header (like this example "collection.h")
 
 ```c
-typedef struct cops_allocator {
-        void *(*alloc)(size_t);
-        void (*free)(void *);
-} cops_allocator;
+#ifndef COLLETION_H
+#define COLLETION_H
 
-static inline void *cops_alloc(size_t size) { return calloc(size, 1); }
-const cops_allocator cops_default_allocator = {cops_alloc, free};
+// use only in dev, will enable assert instead of handling error
+#define COPS_ASSERT_ENABLE
+#include "cops.h"
+
+init_slice(int, int_slice);
+init_vec(int, int_vec, int_slice);
+init_set(int, int_set, int_slice);
+init_oset(int, int_oset, int_slice);
+#endif /* end guard #define COLLETION_H */
 ```
 
-_If I want to use my arena?_ **no problemo**
-
-This structure consent to rewrite `alloc` and `free` in any way prefeared  
-
-The only request, instead of linking a custom library upfront before `-libc`, is to mutate the item `cops_default_allocator` pointers to keep easy insertion of custom arena inside data structure objects.
-
-## Array
-
+In the main file you should use `COPS_IMPLEMENTATION` to enable implementation (classic stb-pattern).  
 ```c
-init_cops_arr(T)
+#define COPS_IMPLEMENTATION
+#include "collection.h"
+
+int main(int argc, char *argv[]) {
+//...
 ```
 
-Static Array with refcount and lenght, a small payload for a safer generic array.
+## Configuration Macro
 
-**Structure**:  
-- `len` data lenght
-- `rc` reference counter (smart pointer)
-- `data` variable array to hold statically data
+This macro shall be used **before** the `#include`:  
 
-**API**:  
-- new = initialize new object
-- dup = duplicate (adjust rc)
-- free = free memory (adjust rc)
+| Macro | Description |
+| --- | --- |
+| `COPS_OK` | function returned correctly |
+| `COPS_INVALID` | function made something wrong |
+| `COPS_MEMERR` | function failed allocation |
+| `COPS_ASSERT_ENABLE` | on error run `assert` |
+| `COPS_IMPLEMENTATION` | enable function implementation |
+| `COPS_ALLOC` | override libc `malloc` |
+| `COPS_REALLOC` | override libc `realloc` |
+| `COPS_FREE` | override libc `free` |
 
-Those **API** are in common with all the other classes to handle multithreading in a simple way for a fundamental structure like oset or vec.
 
-## Vector
+**Note**: If you declare `COPS_ALLOC` you should define all three, if not you would encounted undefined behavior
 
-```c
-init_cops_vec(T)
-```
+## Core Concept
+Coherent implementations exist in the library to simplify usage and navigability.
 
-Dynamic Array with refcount, lenght and capacity.   
-Classic vector, start with a default size to avoid primary reallocation, not prone to be used outside the lenght, data is public and open to iterate throw it (like in array).
+### 1. Ownership patterns (`dup` and `free`)
+Collection can manage memory. Each collection (except slice) contain two optional function pointer.
+- `T (*dup)(T)`: if set, collection return clone.  
+- `void (*free)(T)`: if set, collection take ownership of input.  
 
-**Structure**: 
-- `rc` reference count (smart pointer)
-- `nelem` number of element saved
-- `cap` current max capacity
-- `data` array containing values
-- `free` function pointer to free an element (nullable)
-- `dup` function pointer to duplicate an element (nullable)
+### 2. API Design Pattern
+COPS relay on consistent API pattern.  
+`int collection_func(NAME *self, [args..], [T *res]);`
+- **Error as result**: Posix behavior to communicate status with `int` return value
+- **Output parameter**: Secondary output could be optionally obtained by `T *res` who is ignored when `NULL`
 
-**API**:  
-- push = insert in the top a value
-- pop = remove from the top
-- set = overright value in a (valid) position
-- get = retrieve value from a (valid) position
-- import = import all value from another (same type) vector without side effect
+### 3. Interoperability of Collections
+Slice work as intermidiate representation between collections (vec, list, hset, tset).  
+- `collection_export`: Create a slice containing all elements (return a borrowed value, if `dup` is declared return copies)  
+- `collection_import`: Bulk-inserts from slice  
 
-If you want to sort it just use `qsort(vec->data, vec->nelem, sizeof(vec->data[0]), my_cmp_func)`.  
-No need to reinvent the wheel (for ordered set there are other useful object)
+# Collection Reference
 
-# List
+## Slice
 
 ```c
-init_cops_list(T)
-```
-
-Double linked list
-
-**Structure**:  
-- `<name>_node` linked list node structure
-    - `next` next node
-    - `prev` previous node
-    - `val` value
-- `nelem` number of nodes
-- `rc` reference counter (smart pointer)
-- `head`  start of the list
-- `tail` end of the list
-- `free` function pointer to free an element (nullable)
-
-**API**:  
-- push_front = add new head
-- push_back = add new tail
-- pop_front = remoev head
-- pop_back = remove tail
-- add_next = add next to a node
-- add_prev = add prev to a node
-- del = delete node
-
-minimal utility to handle queue without circular array and without priority
-
-## Map
-
-```c
-init_cops_map(K, V)
-```
-
-Hashmap with some implemented hash function.  
-vector logic behind data structure, robin hood brobe mechanic with a quadratic probing.  
-`(i * i + 1) / 2`
-
-**Structure**: 
-- `<name>_node` key-value map node
-    - `flag` robin hodd flag, 0x80 free, 0x40 tombstone, other are jump occurred
-    - `key` hashmap key (unique)
-    - `val` hasmap value
-- `rc` reference count (smart pointer)
-- `nelem` number of element saved
-- `cap` current max capacity
-- `data` array containing values
-- `free_key` function pointer to free a node key (nullable)
-- `free_val` function pointer to free a node value (nullable)
-- `dup_key` function pointer update rc of node key (nullable)
-- `dup_val` function pointer update rc of node value (nullable)
-
-**API**:  
-- add = add key-value pair if key doesn't exist
-- set = update value on map node if key exist
-- has = check if key exist, 1 if true, 0 if false
-- del = remove map node if key exist
-- get = retrieve value from a (valid) position
-- import = import all value from another (same type) map with side effect
-
-
-## Set
-
-```c
-init_cops_set(T)
+struct slice {
+    uint64_t len;
+    T data[];
+};
 ```
 
 
-Hashset with some implemented hash function.  
-vector logic behind data structure, robin hood brobe mechanic with a quadratic probing.  
-`(i * i + 1) / 2`
+| API | Input | Return | Description |
+| :-: | :-: | :-: | --- |
+| `new` | `uint64_t len` | `*self` | create new slice |
+| `free` | `NAME *self` | `status` | destroy given slice |
 
-**Structure**: 
-- `<name>_node` set node with robin hood flag
-    - `flag` robin hodd flag, 0x80 free, 0x40 tombstone, other are jump occurred
-    - `val` hasset value
-- `rc` reference count (smart pointer)
-- `nelem` number of element saved
-- `cap` current max capacity
-- `data` array containing values
-- `free` function pointer to free a node value (nullable)
-- `dup` function pointer update rc of node value (nullable)
 
-**API**:  
-- add = add key-value pair if key doesn't exist
-- set = update value on map node if key exist
-- has = check if key exist, 1 if true, 0 if false
-- del = remove map node if key exist
-- get = retrieve value from a (valid) position
-- import = import all value from another (same type) map with side effect
-
-## Omap
+## Vec
 
 ```c
-init_cops_omap(K, V)
+struct vec {
+    uint64_t len;
+    uint64_t cap;
+    T *data;
+    void (*free)(T);
+    T (*dup)(T);
+};
 ```
 
-Red-Black tree map, a pristine implementation of red black tree BST balancing logic.
+> Sorting is not implemented but can be performed in this manner:  
+>
+> ```c
+> #include <stdlib.h>
+> qsort(self->data, sizeof(*self->data), self->len, my_cmp_func);
+> ```
 
-This implementation have `add`, `has`, `mod`, `del` to insert, peek, set and remove a node (key-value).  
-Unrequired API exposed are node rotation and node struct but required for BST implementation.
+| API | Input | Return | Description |
+| :-: | --- | :-: | --- |
+| `new` | `uint64_t len` | `*self` | create new slice |
+| `free` | `NAME *self` | `status` | destroy given slice |
+| `reset` | `NAME *self` | `status` | reset slice length |
+| `push` | `NAME *self, T val` | `status` | push back val |
+| `pop` | `NAME *self, T *res` | `status` | pop back res |
+| `get` | `NAME *self, uint64_t pos, T val` | `status` | get val from pos |
+| `set` | `NAME *self, uint64_t pos, T val, T *res` | `status` | update pos entry with val, could get res |
+| `insert` | `NAME *self, uint64_t pos, T val` | `status` | insert new val in pos |
+| `remove` | `NAME *self, uint64_t pos, T val, T *res` | `status` | delete val in pos, could get res |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
+| `export` | `NAME *self` | `*slice` | create slice as representation |
+
+
+## List
+
+```c
+struct ll_node {
+    ll_node *next;
+    ll_node *prev;
+    T val;
+};
+struct list {
+    uint64_t len;
+    ll_node *head;
+    ll_node *tail;
+    void (*free)(T);
+    T (*dup)(T);
+};
+```
+
+
+| API | Input | Return | Description |
+| :-: | :-- | :-: | :-- |
+| `new` | `uint64_t len` | `*self` | create new slice |
+| `free` | `NAME *self` | `status` | destroy given slice |
+| `push_front` | `NAME *self, T val` | `status` | push head val |
+| `push_back` | `NAME *self, T val` | `status` | push tail val |
+| `pop_front` | `NAME *self, T *res` | `status` | pop head res |
+| `pop_back` | `NAME *self, T *res` | `status` | pop tail res |
+| `insert_before` | `NAME *self, ll_node *node, T val` | `status` | insert val before node |
+| `insert_after` | `NAME *self, ll_node *node, T val` | `status` | insert val after node |
+| `remove` | `NAME *self, ll_node *node, T val, list_node *res` | `status` | delete val in pos, could get res |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
+| `export` | `NAME *self` | `*slice` | create slice as representation |
+
+
+## Hset
+
+```c
+struct rh_node {
+    uint8_t free: 1;
+    uint8_t tomb: 1;
+    uint8_t jumps: 6;
+    T val;
+};
+struct list {
+    uint64_t len;
+    uint64_t cap;
+    rh_node *data;
+    uint64_t (*hash)(T);
+    int (*cmp)(T, T);
+    void (*free)(T);
+    T (*dup)(T);
+};
+```
+
+
+| API | Input | Return | Description |
+| :-: | --- | :-: | --- |
+| `new` | `uint64_t len` | `*self` | create new slice |
+| `free` | `NAME *self` | `status` | destroy given slice |
+| `set` | `NAME *self, T val` | `status` | update val if exist |
+| `get` | `NAME *self, uint64_t pos, T val, T *res` | `status` | search val if exist and get res |
+| `has` | `NAME *self, uint64_t pos, T val` | `bool` | search if val exist |
+| `push` | `NAME *self, T val` | `status` | push back val |
+| `pop` | `NAME *self, T *res` | `status` | pop back res |
+| `add` | `NAME *self, T val` | `status` | insert new val if not exist |
+| `del` | `NAME *self, T val` | `status` | delete val if exist |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
+| `export` | `NAME *self` | `*slice` | create slice as representation |
+
 
 ## Oset
 
 ```c
-init_cops_oset(T)
+struct rb_node {
+    rb_node *parent;
+    rb_node *left;
+    rb_node *right;
+    uint8_t isred;
+    T val;
+};
+
+struct list {
+    uint64_t len;
+    rb_node *root;
+    int (*cmp)(T, T);
+    void (*free)(T);
+    T (*dup)(T);
+};
 ```
 
-as for unordered set, this too have same implementation of omap
+
+| API | Input | Return | Description |
+| :-: | --- | :-: | --- |
+| `new` | `uint64_t len` | `*self` | create new slice |
+| `free` | `NAME *self` | `status` | destroy given slice |
+| `has` | `NAME *self, T val` | `bool` | search if val exist |
+| `add` | `NAME *self, T val` | `status` | insert new val if not exist |
+| `del` | `NAME *self, T *val` | `status` | delete val if exist |
+| `import` | `NAME *self, slice *slice` | `status` | bulk inserts and free slice |
+| `export` | `NAME *self` | `*slice` | create slice as representation |
+
