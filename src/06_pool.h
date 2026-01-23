@@ -12,6 +12,17 @@
 #define __cops_bitmap_size(len)                                                \
         ((uint64_t)((uint64_t)((uint64_t)len + 7) / (uint64_t)8))
 
+#define __cops_ctz64(x)                                                        \
+        !(x) + (const unsigned char[]){63, 0,  1,  52, 2,  6,  53, 26, 3,  37, \
+                                       40, 7,  33, 54, 47, 27, 61, 4,  38, 45, \
+                                       43, 41, 21, 8,  23, 34, 58, 55, 48, 17, \
+                                       28, 10, 62, 51, 5,  25, 36, 39, 32, 46, \
+                                       60, 44, 42, 20, 22, 57, 16, 9,  50, 24, \
+                                       35, 31, 59, 19, 56, 15, 49, 30, 18, 14, \
+                                       29, 13, 12, 11}                         \
+                   [(((uint64_t)(x) & -(uint64_t)(x)) * 0x045FBAC7992A70DA) >> \
+                    58]
+
 #define __cops_init_pool_decl(T, NAME)                                         \
         typedef struct NAME##_slab NAME##_slab;                                \
         typedef struct NAME {                                                  \
@@ -36,6 +47,7 @@
                                                  uint64_t len)                 \
         {                                                                      \
                 uint64_t bites = __cops_bitmap_size(len);                      \
+                /* TODO: speed up */                                           \
                 for (uint64_t i = 0; i < bites; i++) {                         \
                         self->map[i] = 0x00;                                   \
                 }                                                              \
@@ -43,29 +55,47 @@
                                                                                \
         static inline NAME##_slab *__##NAME##_slab_new(uint64_t len)           \
         {                                                                      \
+                /* allocate slab */                                            \
                 NAME##_slab *res = COPS_ALLOC(sizeof(T) * len + sizeof(*res)); \
                 COPS_ASSERT(res);                                              \
                 if (!res)                                                      \
                         return NULL;                                           \
+                /* allocate map */                                             \
                 res->map = COPS_ALLOC(__cops_bitmap_size(len));                \
                 COPS_ASSERT(res->map);                                         \
                 if (!res->map) {                                               \
                         COPS_FREE(res);                                        \
                         return NULL;                                           \
                 }                                                              \
+                /* zero data */                                                \
                 __##NAME##_slab_reset(res, len);                               \
                 res->next = NULL;                                              \
                 return res;                                                    \
         }                                                                      \
+                                                                               \
+        /* slab free is handled by pool_free */                                \
                                                                                \
         static inline T *__##NAME##_slab_alloc(NAME##_slab *self,              \
                                                uint64_t len)                   \
         {                                                                      \
                 uint64_t bites = __cops_bitmap_size(len);                      \
                 int64_t trg_byte = -1;                                         \
-                for (uint64_t i = 0; i < bites; i++) {                         \
-                        if (self->map[i] == 0xFF)                              \
+                /* TODO: speed up */                                           \
+                uint64_t i = 0;                                                \
+                while (1) {                                                    \
+                        /* boundary check */                                   \
+                        if (i < bites)                                         \
+                                break;                                         \
+                        /* last bytes */                                       \
+                        if ((len - i) < 8) {                                   \
+                                i++;                                           \
                                 continue;                                      \
+                        }                                                      \
+                        /* skip full word map */                               \
+                        if ((uint64_t)self->map[i] == 0xFFFFFFFFFFFFFFFF) {    \
+                                i = +8;                                        \
+                                continue;                                      \
+                        }                                                      \
                         trg_byte = i;                                          \
                         break;                                                 \
                 }                                                              \
@@ -82,9 +112,17 @@
                 }                                                              \
         }                                                                      \
                                                                                \
-        static inline int __##NAME##_slab_release(NAME##_slab *self, T *ptr)   \
+        /* 1: is released, 0: not owned */                                     \
+        static inline int __##NAME##_slab_release(NAME##_slab *self,           \
+                                                  uint64_t len, T *ptr)        \
         {                                                                      \
-                return 0;                                                      \
+                uintptr_t start = self->data;                                  \
+                uintptr_t end = start + sizeof(T) * len;                       \
+                if ((uintptr_t)ptr < start || (uintptr_t)ptr >= end)           \
+                        return 0;                                              \
+                uint64_t pos = ((uintptr_t)ptr - start) / sizeof(T);           \
+                self->map[pos / 8] &= ~(1 << (pos % 8));                       \
+                return 1;                                                      \
         }                                                                      \
                                                                                \
         void NAME##_new(NAME *self, uint64_t len)                              \
@@ -154,10 +192,10 @@
                         return;                                                \
                 NAME##_slab *trg = self->head;                                 \
                 while (trg) {                                                  \
-                        int res = __##NAME##_slab_release(trg, mem);           \
+                        int res =                                              \
+                            __##NAME##_slab_release(trg, self->len, mem);      \
                         if (res)                                               \
                                 return;                                        \
                         trg = trg->next;                                       \
                 }                                                              \
-        }                                                                      \
-        \
+        }
