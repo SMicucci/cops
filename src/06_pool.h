@@ -79,44 +79,32 @@
                                                uint64_t len)                   \
         {                                                                      \
                 uint64_t bites = __cops_bitmap_size(len);                      \
-                int64_t trg_byte = -1;                                         \
-                /* TODO: speed up */                                           \
-                uint64_t i = 0;                                                \
-                while (1) {                                                    \
-                        /* boundary check */                                   \
-                        if (i < bites)                                         \
-                                break;                                         \
-                        /* last bytes */                                       \
-                        if ((len - i) < 8) {                                   \
-                                i++;                                           \
-                                continue;                                      \
+                for (uint64_t i = 0; i < bites; i += 8) {                      \
+                        /* populate proxy value (avoid dirty read) */          \
+                        uint64_t map_word = 0;                                 \
+                        for (uint64_t j = 0; j < 8 && (i + j) < bites; j++) {  \
+                                map_word |= (uint64_t)self->map[i + j]         \
+                                            << (j * 8);                        \
                         }                                                      \
-                        /* skip full word map */                               \
-                        if ((uint64_t)self->map[i] == 0xFFFFFFFFFFFFFFFF) {    \
-                                i = +8;                                        \
-                                continue;                                      \
+                        /* scan and try allocate */                            \
+                        uint64_t first_zero = __cops_first_zero(map_word);     \
+                        if (first_zero < 64) {                                 \
+                                uint64_t pos = i * 8 + first_zero;             \
+                                if (pos >= len)                                \
+                                        return NULL;                           \
+                                /* bookkeeping */                              \
+                                self->map[pos / 8] |= (1 << (pos % 8));        \
+                                return self->data + pos;                       \
                         }                                                      \
-                        trg_byte = i;                                          \
-                        break;                                                 \
                 }                                                              \
-                if (trg_byte == -1)                                            \
-                        return NULL;                                           \
-                for (uint8_t j = 0; j < 8; j++) {                              \
-                        if (((1 << j) & self->map[trg_byte]))                  \
-                                continue;                                      \
-                        int64_t pos = trg_byte * 8 + j;                        \
-                        if (pos >= len)                                        \
-                                return NULL;                                   \
-                        self->map[trg_byte] |= (1 << j);                       \
-                        return self->data + pos;                               \
-                }                                                              \
+                return NULL;                                                   \
         }                                                                      \
                                                                                \
         /* 1: is released, 0: not owned */                                     \
         static inline int __##NAME##_slab_release(NAME##_slab *self,           \
                                                   uint64_t len, T *ptr)        \
         {                                                                      \
-                uintptr_t start = self->data;                                  \
+                uintptr_t start = (uintptr_t)self->data;                       \
                 uintptr_t end = start + sizeof(T) * len;                       \
                 if ((uintptr_t)ptr < start || (uintptr_t)ptr >= end)           \
                         return 0;                                              \
